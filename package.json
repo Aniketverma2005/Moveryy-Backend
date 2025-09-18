@@ -1,0 +1,15 @@
+{
+  "name": "moveryy-backend",
+  "version": "1.0.0",
+  "description": "Yours Delivey Partner",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "node",
+    "moveryy"
+  ],
+  "author": "Aniket",
+  "license": "ISC"
+}
