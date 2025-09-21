@@ -16,6 +16,10 @@ sequelize.sync({alter: true})
     });
 
 
+    import userRoutes from './src/routes/user.routes.js';
+
+    app.use('/api/v1/users', userRoutes);
+
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 })

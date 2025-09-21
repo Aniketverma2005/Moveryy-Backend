@@ -15,13 +15,11 @@ const userSchema = sequelize.define("users", {
     },
     firstName: {
         type: DataTypes.STRING,
-        index: true,
         allowNull: false,
-        unique:flase
+        unique:false
     },
     lastName: {
-        type: String,
-        index: true,
+        type: DataTypes.STRING,
         allowNull: false,
         unique:false
     },
@@ -37,7 +35,6 @@ const userSchema = sequelize.define("users", {
     },
     password: {
         type: DataTypes.STRING,
-        require: [true, "Password is required"],
         allowNull: false,
         validate: {
             len: [8, 255],
@@ -50,7 +47,13 @@ const userSchema = sequelize.define("users", {
         defaultValue: "user"
     }
 
-}, {timestamps: true})
+}, {
+    timestamps: true,
+    indexes: [
+    { fields: ['firstName'] },
+    { fields: ['lastName'] }
+  ]
+});
 
 // Hash the password before saving the user
 userSchema.beforeCreate(async (user) => {
@@ -74,3 +77,5 @@ userSchema.prototype.jwtGenerateToken = async function() {
         {expiresIn: process.env.JWT_EXPIRE || "7d"}
     );
 };
+
+export default userSchema;
