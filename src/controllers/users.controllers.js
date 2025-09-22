@@ -4,6 +4,22 @@ import { Validation } from "../utils/Validation.js";
 import User from "../models/users.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+
+//Generate JWT token
+const generateAccessToken = async (userId) => {
+    try {
+        const user = await User.findByPk(userId);
+        if(!user) {throw new ApiErrors(401, "User not found")}
+
+        const accessToken = await user.jwtGenerateToken();
+        
+        return {accessToken};
+        
+    } catch (error) {
+        throw new ApiErrors(500, "Could not generate access token");
+    }
+}
+
 const registerUser = asyncHandler (async (req, res) => {
     //get details from user
     //validation(not empty)
@@ -61,6 +77,8 @@ const registerUser = asyncHandler (async (req, res) => {
     )  
 })
 
+
+//Login User using email and password
 const loginUser = asyncHandler (async (req, res) => {
     const {email, password} = req.body;
 
@@ -72,7 +90,55 @@ const loginUser = asyncHandler (async (req, res) => {
         throw new ApiErrors(400, "Password is required");
     }
 
+    const user = await User.findOne({where: {email}});
+    if(!user) {
+        throw new ApiErrors(404, "User not found");
+    }
+
+
+    const validPassword = await user.isPasswordCorrect(password);
+    if(!validPassword) {
+        throw new ApiErrors(401, "Incorrect Password");
+    }
+
+
+    const { accessToken } = await generateAccessToken(user.id);
+    if(!accessToken) {
+        throw new ApiErrors(500, "Could not generate access token. Please try again");
+    }
+
+    const loggedInUser = await User.findByPk(user.id, {attributes: {exclude: ['password']}});
+
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser, accessToken
+            }
+            , "User logged in Successfully"
+        )
+    )
+
 })
 
 
-export {registerUser, loginUser}
+//Logout user
+const logoutUser = asyncHandler(async (req, res) => {
+
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict" 
+    });
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "User logged out successfully"))
+
+})
+
+
+export {registerUser, loginUser, logoutUser}

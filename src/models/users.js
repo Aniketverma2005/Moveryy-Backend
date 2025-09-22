@@ -49,10 +49,6 @@ const userSchema = sequelize.define("users", {
 
 }, {
     timestamps: true,
-    indexes: [
-    { fields: ['firstName'] },
-    { fields: ['lastName'] }
-  ]
 });
 
 // Hash the password before saving the user
@@ -77,5 +73,10 @@ userSchema.prototype.jwtGenerateToken = async function() {
         {expiresIn: process.env.JWT_EXPIRE || "7d"}
     );
 };
+
+// Check whether the password is correct or not
+userSchema.prototype.isPasswordCorrect = async function(password) {
+    return await bcrypt.compare(password, this.password);
+}
 
 export default userSchema;
