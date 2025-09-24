@@ -1,7 +1,8 @@
-import { ApiErrors } from "../utils/ApiErrors";
-import { asyncHandler } from "../utils/asyncHandler";
+import { ApiErrors } from "../utils/ApiErrors.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
-import { User } from "../models/users.js"
+import User from "../models/Users.js"; 
+
 
 
 // Get token from cookies or headers

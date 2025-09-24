@@ -25,12 +25,10 @@ const userSchema = sequelize.define("users", {
     },
     email:{
         type: DataTypes.STRING,
-        unique: true,
         allowNull: false
     },
     phone:{
         type: DataTypes.STRING,
-        unique: true,
         allowNull: false
     },
     password: {
@@ -45,6 +43,9 @@ const userSchema = sequelize.define("users", {
         type: DataTypes.ENUM ("user", "admin", "transport"),
         allowNull: false,
         defaultValue: "user"
+    },
+    refreshToken: {
+        type: DataTypes.STRING,
     }
 
 }, {
@@ -73,6 +74,14 @@ userSchema.prototype.jwtGenerateToken = async function() {
         {expiresIn: process.env.JWT_EXPIRE || "7d"}
     );
 };
+
+userSchema.prototype.generateRefreshToken = async function() {
+    return jwt.sign(
+        {id: this.id}
+        , process.env.REFRESH_TOKEN_SECRET || "refreshtokenmoveryy",
+        {expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "10d"}
+    )
+}
 
 // Check whether the password is correct or not
 userSchema.prototype.isPasswordCorrect = async function(password) {

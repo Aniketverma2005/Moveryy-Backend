@@ -1,0 +1,133 @@
+import { Users, Organizations } from "../models/index.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiErrors } from "../utils/ApiErrors.js";
+import { Validation } from "../utils/Validation.js";
+
+const createOrganization = asyncHandler(async (req, res) => {
+
+    //Chack if User has a Valid Token
+    if(!req.user) {
+        throw new ApiErrors(401, "Unauthorized Token");
+    }
+
+    //Only Admin Users can create Organizations
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(403, "Only admin users can create organizations");
+    }
+
+    const { organizationName, organizationType, businessName, about, domain, subdomain, logo, phone, email, country, state, city, pincode, addressLine1, addressLine2} = req.body;
+
+    if(Validation.isEmpty(organizationName)) {
+        throw new ApiErrors(400, "Organization name is required");
+    }
+    if(Validation.isEmpty(organizationType)) {
+        throw new ApiErrors(400, "Organization type is required");
+    }
+    if(Validation.isEmpty(domain) || !Validation.validateDomain(domain)) {
+        throw new ApiErrors(400, "Domain is required");
+    }
+    if(Validation.isEmpty(subdomain) || !Validation.validateSubdomain(subdomain)) {
+        throw new ApiErrors(400, "Subdomain is required");
+    }
+    if(Validation.isEmpty(phone) || !Validation.validatePhone(phone)) {
+        throw new ApiErrors(400, "A valid phone number is required");
+    }
+    if(Validation.isEmpty(email) || !Validation.validateEmail(email)) {
+        throw new ApiErrors(400, "A valid email is required");
+    }
+    if(Validation.isEmpty(country)) {
+        throw new ApiErrors(400, "Country is required");
+    }
+    if(Validation.isEmpty(state)) {
+        throw new ApiErrors(400, "State is required");
+    }
+    if(Validation.isEmpty(city)) {
+        throw new ApiErrors(400, "City is required");
+    }
+    if(Validation.isEmpty(pincode) || !Validation.validatePincode(pincode)) {
+        throw new ApiErrors(400, "A valid pincode is required");
+    }
+    if(Validation.isEmpty(addressLine1)) {
+        throw new ApiErrors(400, "Address  is required");
+    }
+
+    const existingOrganization = await Organizations.findOne({ where: { domain } });
+    if (existingOrganization) {
+        throw new ApiErrors(400, "Organization with this domain already exists");
+    }
+
+    const existingSubdomain = await Organizations.findOne({ where: { subdomain } });
+    if (existingSubdomain) {
+        throw new ApiErrors(400, "Organization with this subdomain already exists");
+    }
+
+    const existingEmail = await Organizations.findOne({ where: { email } });
+    if (existingEmail) {
+        throw new ApiErrors(400, "Organization with this email already exists");
+    }
+
+    const existingPhone = await Organizations.findOne({ where: { phone } });
+    if (existingPhone) {
+        throw new ApiErrors(400, "Organization with this phone number already exists");
+    }
+
+    const organization = await Organizations.create ({
+        organizationName: organizationName.toLowerCase(),
+        organizationType: organizationType.toLowerCase(),
+        businessName: businessName.toLowerCase(),
+        about: about ? about.toLowerCase() : null,
+        domain: domain.toLowerCase(),
+        subdomain: subdomain.toLowerCase(),
+        logo: logo || null,
+        phone: phone,
+        email: email.toLowerCase(),
+        country: country.toLowerCase(),
+        state: state.toLowerCase(),
+        city: city.toLowerCase(),
+        pincode: pincode,
+        addressLine1: addressLine1.toLowerCase(),
+        addressLine2: addressLine2 ? addressLine2.toLowerCase() : null,
+        userId: req.user.id
+    })
+
+    const createdOrganization = await Organizations.findByPk(organization.organizationId, {
+        include: {
+            model: Users,
+            as: "creator",
+            attributes: { exclude: ['password', 'refreshToken'] }
+        }
+    });
+
+    if(!createdOrganization) {
+        throw new ApiErrors(500, "Organization creation failed. Please try again");
+    }
+
+    res
+    .status(201)
+    .json({ 
+        message: "Organization created successfully", data: createdOrganization
+    });
+});
+
+
+export {
+    createOrganization
+}
+
+// {
+//   "organizationName": "Moveryy transports",
+//   "organizationType": "Home Shift, Office Shifts, Car Shifts",
+//   "businessName": "Moveryy Transports Pvt Ltd",
+//   "about": "Your Moving Partner",
+//   "domain": "moveryy.com",
+//   "subdomain": "moveryy",
+//   "phone": "+911234567890",
+//   "logo":"",
+//   "email": "moveryy@moveryy.com",
+//   "country": "India",
+//   "state": "Maharashtra",
+//   "city": "Mumbai",
+//   "pincode": 400001,
+//   "addressLine1": "123, Business Street",
+//   "addressLine2": "5th Floor, Office 501"
+// }

@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "root",
+    "password": "Aniket@2005",
+    "database": "moveryy_db",
+    "host": "localhost",
+    "dialect": "mysql"
+  },
+  "test": {
+    "username": "root",
+    "password": "Aniket@2005",
+    "database": "moveryy_db",
+    "host": "localhost",
+    "dialect": "mysql"
+  },
+  "production": {
+    "username": "root",
+    "password": "Aniket@2005",
+    "database": "moveryy_db",
+    "host": "localhost",
+    "dialect": "mysql"
+  }
+}
