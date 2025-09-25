@@ -4,6 +4,7 @@ import { Validation } from "../utils/Validation.js";
 import User from "../models/Users.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import Organizations from "../models/Organizations.js";
 
 
 //Generate JWT token
@@ -140,6 +141,11 @@ const loginUser = asyncHandler (async (req, res) => {
 
 //Logout user
 const logoutUser = asyncHandler(async (req, res) => {
+
+    await Organizations.update(
+        {status: 'inactive'}, 
+        {where: {userId: req.user.id, status: 'active'}});
+
 
     res.clearCookie("accessToken", "refreshToken", {
         httpOnly: true,

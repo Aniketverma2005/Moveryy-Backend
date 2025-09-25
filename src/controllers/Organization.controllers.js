@@ -110,8 +110,114 @@ const createOrganization = asyncHandler(async (req, res) => {
 });
 
 
+const fetchOrganizations = asyncHandler(async (req, res) =>  {
+    const userId = req.user.id;
+
+    if(!userId) {
+        throw new ApiErrors(401, "Unauthorized Token");
+    }
+
+    const organizations = await Organizations.findAll({ where: { userId }, order: [['createdAt', 'ASC']] });
+    //console.log(organizations);
+
+    return res
+    .status(200)
+    .json({ message: "Organizations fetched successfully", data: organizations });
+})
+
+
+const organizationStatus = asyncHandler(async (req, res) => {
+    const { organizationId } = req.body;
+
+    if (!organizationId) {
+        throw new ApiErrors(400, "Organization ID is required");
+    }
+
+    const organization = await Organizations.findOne({
+        where: { 
+            organizationId, 
+            userId: req.user.id 
+        }
+    });
+
+    if (!organization) {
+        throw new ApiErrors(404, "Organization not found or user does not belong to the organization");
+    }
+
+    // Toggle status automatically
+    organization.status = organization.status === "inactive" ? "active" : "inactive";
+
+    await organization.save();
+
+    return res.status(200).json({
+        message: `Organization status changed to ${organization.status}`,
+        data: organization
+    });
+});
+
+
+const updateOrganization = asyncHandler(async (req, res) => {
+    const organization = req.organization;
+    const updateDate = req.body;
+
+    await organization.update(updateDate);
+
+    return res
+    .status(200)
+    .json({
+        message: "Organization updated successfully",
+        data: organization
+    });
+});
+
+
+const deleteOrganization = asyncHandler(async (req, res) => {
+    const { organizationId } = req.params;
+    const userId = req.user.id;
+
+    if(!req.user) {
+        throw new ApiErrors(401, "Unauthorized Token");
+    }
+
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(403, "Only admin users can delete organizations");
+    }
+
+    if (!organizationId) {
+        throw new ApiErrors(400, "Organization ID is required");
+    }
+
+    const organization = await Organizations.findOne({
+        where: { 
+            organizationId, 
+            userId 
+        }
+    });
+
+    if (!organization) {
+        throw new ApiErrors(404, "User is not the part of this organization");
+    }
+
+    await organization.destroy();
+
+    return res
+    .status(200)
+    .json({
+        message: "Organization deleted successfully"
+    });
+})
+
+
+
+
+
+
 export {
-    createOrganization
+    createOrganization,
+    fetchOrganizations,
+    organizationStatus,
+    updateOrganization,
+    deleteOrganization
 }
 
 // {

@@ -1,8 +1,8 @@
 import sequelize from "../database/db.js";
 import { DataTypes } from "sequelize";
 
-const organizationSchema = sequelize.define("organizations", {
-    organizationId: {
+const employee = sequelize.define("employees", {
+    employeeId: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
@@ -14,37 +14,16 @@ const organizationSchema = sequelize.define("organizations", {
             model: 'users',
             key: 'id'
         },
-        onDelete: 'CASCADE',  //When the user is deleted it will delete the organizations too
     },
-    organizationName: {
-        type: DataTypes.STRING,
+    organizationId: {
+        type: DataTypes.INTEGER,
         allowNull: false,
+        references: {
+            model: 'organizations',
+            key: 'organizationId'
+        },
     },
-    organizationType: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    businessName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    about: {
-        type: DataTypes.STRING,
-        allowNull: true,
-    },
-    domain:{
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    subdomain: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    logo: {
-        type: DataTypes.STRING,
-        allowNull: true,
-    },
-    phone: {
+    employeeName: {
         type: DataTypes.STRING,
         allowNull: false,
     },
@@ -52,38 +31,63 @@ const organizationSchema = sequelize.define("organizations", {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    country: {
+    password: {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    state: {
-        type: DataTypes.STRING,
-        allowNull: false,
-
-    },
-    city: {
+    phone: {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    pincode: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    addressLine1: {
+    role: {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    addressLine2: {
+    gender: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    aadharNumber:{
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    panNumber: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    address: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+    },
+    isBlacklisted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    blacklistReason:{
         type: DataTypes.STRING,
         allowNull: true,
     },
-
-    status: {
-        type: DataTypes.ENUM("active", "inactive"),
-        defaultValue: "inactive"
+    createdBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
+    },
+    updatedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
     }
+
 }, {timestamps: true});
 
-
-
-export default organizationSchema;
+export default employee;
