@@ -16,11 +16,11 @@ const initDB = async () => {
     await sequelize.authenticate();
     console.log("Database connected successfully.");
 
-    //await sequelize.sync({ force: true }); // or { force: true } in dev only
+    //await sequelize.sync({ alter: true }); // or { force: true } in dev only
     console.log("Models synchronized successfully.");
   } catch (err) {
     console.error("Database connection failed:", err.message);
   }
 };
 
-export { sequelize, initDB, Users, Organizations };
+export { sequelize, initDB, Users, Organizations,  };

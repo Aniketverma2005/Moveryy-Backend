@@ -30,3 +30,16 @@ router.route('/update').patch(verifyToken, activeOrganization, updateOrganizatio
 router.route('/:organizationId').delete(verifyToken, activeOrganization, deleteOrganization)
 
 export default router;
+
+// {
+//   "employeeName":"Raju",
+//   "email":"rajukumar@gmail.com",
+//   "password":"Raju@123",
+//   "role":"transport",
+//   "gender":"male",
+//   "address":"New Delhi, Hauz Khas",
+//   "phone":"+918773523452",
+//   "aadharNumber":"123456789012",
+//   "panNumber":"AF45FDA"
+  
+// }

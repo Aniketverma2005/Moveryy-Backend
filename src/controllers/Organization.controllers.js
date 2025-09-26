@@ -1,7 +1,10 @@
-import { Users, Organizations } from "../models/index.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiErrors } from "../utils/ApiErrors.js";
 import { Validation } from "../utils/Validation.js";
+import { generateTokenWithOrg } from "../utils/GenerateTokenWithOrg.js";
+import { Organizations } from "../models/index.js";
+
+
 
 const createOrganization = asyncHandler(async (req, res) => {
 
@@ -146,12 +149,18 @@ const organizationStatus = asyncHandler(async (req, res) => {
 
     // Toggle status automatically
     organization.status = organization.status === "inactive" ? "active" : "inactive";
-
     await organization.save();
+
+
+    let token = null;
+    if(organization.status === "active") {
+        token = await generateTokenWithOrg(req.user.id, organization.organizationId)
+    }
 
     return res.status(200).json({
         message: `Organization status changed to ${organization.status}`,
-        data: organization
+        data: organization,
+        token: token
     });
 });
 

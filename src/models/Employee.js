@@ -7,14 +7,6 @@ const employee = sequelize.define("employees", {
         primaryKey: true,
         autoIncrement: true,
     },
-    userId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'users',
-            key: 'id'
-        },
-    },
     organizationId: {
         type: DataTypes.INTEGER,
         allowNull: false,
