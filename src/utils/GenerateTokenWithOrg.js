@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken"
 import { ApiErrors } from "./ApiErrors.js";
 import User from "../models/Users.js";
+import Employee from "../models/Employee.js"
 
 
 const generateTokenWithOrg = async (userId, organizationId) => {
@@ -25,4 +26,30 @@ const generateTokenWithOrg = async (userId, organizationId) => {
     }
 }
 
-export {generateTokenWithOrg}
+
+const generateEmployeeToken = async (employeeId) => {
+    try {
+        const employee = await Employee.findByPk(employeeId)
+        if(!employee) {
+            throw new ApiErrors(401, "Employee not found")
+        }
+    
+        const payload = {
+            employeeId: employee.employeeId,
+            email: employee.email,
+            role: employee.role,
+            organizationId: employee.organizationId
+        };
+    
+        const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {expiresIn: "1d"});
+        const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {expiresIn: "7d"})
+
+
+        return {accessToken, refreshToken};
+    } catch (error) {
+        throw new ApiErrors(400, "Could not generate Token")
+    }
+
+}
+
+export {generateTokenWithOrg, generateEmployeeToken}

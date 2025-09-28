@@ -1,5 +1,6 @@
 import sequelize from "../database/db.js";
 import { DataTypes } from "sequelize";
+import bcrypt from "bcrypt"
 
 const employee = sequelize.define("employees", {
     employeeId: {
@@ -51,6 +52,19 @@ const employee = sequelize.define("employees", {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: "busy",  
+        validate: {
+            isIn: [["available", "busy"]] 
+        }
+    },
+    refreshToken: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -81,5 +95,12 @@ const employee = sequelize.define("employees", {
     }
 
 }, {timestamps: true});
+
+
+employee.beforeCreate(async(employee) => {
+    if(employee.password) {
+        employee.password = await bcrypt.hash(employee.password, 10);
+    }
+})
 
 export default employee;

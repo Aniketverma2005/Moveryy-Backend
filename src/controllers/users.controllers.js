@@ -146,12 +146,14 @@ const logoutUser = asyncHandler(async (req, res) => {
         {status: 'inactive'}, 
         {where: {userId: req.user.id, status: 'active'}});
 
-
-    res.clearCookie("accessToken", "refreshToken", {
+    const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict" 
-    });
+        sameSite: "strict"
+    };
+
+    res.clearCookie("accessToken", options);
+    res.clearCookie("refreshToken", options);
 
     return res
     .status(200)
