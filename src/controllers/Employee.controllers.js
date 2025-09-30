@@ -73,7 +73,7 @@ const createEmployee = asyncHandler(async(req, res) => {
     try {
         const existingEmployee = await Employee.findOne({where :{aadharNumber}});
         if(existingEmployee) {
-            throw new ApiErrors(400, "Employee with this email is already registered")
+            throw new ApiErrors(400, "Employee with this aadhar is already registered")
         }
     } catch (error) {
         console.log("Sequelize Error", error)
