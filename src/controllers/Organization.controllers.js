@@ -3,6 +3,8 @@ import { ApiErrors } from "../utils/ApiErrors.js";
 import { Validation } from "../utils/Validation.js";
 import { generateTokenWithOrg } from "../utils/GenerateTokenWithOrg.js";
 import { Organizations } from "../models/index.js";
+import Users from "../models/Users.js";
+
 
 
 
@@ -54,10 +56,8 @@ const createOrganization = asyncHandler(async (req, res) => {
         throw new ApiErrors(400, "Address  is required");
     }
 
-    const existingOrganization = await Organizations.findOne({ where: { domain } });
-    if (existingOrganization) {
-        throw new ApiErrors(400, "Organization with this domain already exists");
-    }
+    const existingOrg = await Organizations.findOne({ where: { domain } });
+    if (existingOrg) throw new ApiErrors(400, "Organization with this domain already exists");
 
     const existingSubdomain = await Organizations.findOne({ where: { subdomain } });
     if (existingSubdomain) {
@@ -94,12 +94,12 @@ const createOrganization = asyncHandler(async (req, res) => {
     })
 
     const createdOrganization = await Organizations.findByPk(organization.organizationId, {
-        include: {
-            model: Users,
-            as: "creator",
-            attributes: { exclude: ['password', 'refreshToken'] }
-        }
-    });
+            include: {
+                model: Users,
+                as: "creator",
+                attributes: { exclude: ['password', 'refreshToken'] }
+            },
+        });
 
     if(!createdOrganization) {
         throw new ApiErrors(500, "Organization creation failed. Please try again");

@@ -4,6 +4,7 @@ import { Validation } from "../utils/Validation.js";
 import Vehicles from "../models/Vehicles.js"
 
 
+
 const registerVehicles = asyncHandler(async (req, res) => {
 
     const{
@@ -149,6 +150,84 @@ const fetchVehicles = asyncHandler(async (req, res) => {
         throw new ApiErrors(error)
     }
 
+});
+
+
+const updateVehicleData = asyncHandler(async (req, res) => {
+    if (!req.user) {
+        throw new ApiErrors(401, "Unauthorized Token");
+    }
+
+    if (req.user.role !== "admin") {
+        throw new ApiErrors(403, "Only admin users can update this");
+    }
+
+    const vehicle = await Vehicles.findByPk(req.params.id);
+
+    if (!vehicle) {
+        throw new ApiErrors(404, "Vehicle not found");
+    }
+
+    // Ensure same organization
+    if (vehicle.organizationId !== req.user.organizationId) {
+        throw new ApiErrors(403, "You cannot update vehicles outside your organization");
+    }
+
+    // Pick only allowed fields
+    const allowedUpdates = [
+        "vehicleName", "vehicleType", "registrationNumber", 
+        "manufacturer", "capacityValue", "capacityUnit", 
+        "serviceType", "registrarName", "chassisNumber"
+    ];
+    const updateData = {};
+    allowedUpdates.forEach(field => {
+        if (req.body[field] !== undefined) updateData[field] = req.body[field];
+    });
+
+    // Add updatedBy
+    updateData.updatedBy = req.user.id;
+
+    await vehicle.update(updateData);
+
+    return res.status(200).json({
+        message: "Details Updated Successfully",
+        data: vehicle
+    });
+});
+
+
+const deleteVehicle = asyncHandler(async (req, res) => {
+    const {vehicleId} = req.params
+
+    if(!req.user) {
+        throw new ApiErrors(400, "Unauthorize Access")
+    }
+
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(400, "Only Admin can Delete this data")
+    }
+
+    const vehicle = await Vehicles.findOne({
+        where:{
+            vehicleId,
+            organizationId: req.user.organizationId
+        }
+    });
+
+    if(!vehicle) {
+        throw new ApiErrors(400, "Vehicle not found")
+    }
+
+    await vehicle.destroy();
+
+    return res.status(200).json({
+        success: true,
+        message: "Vehicle deleted successfully",
+        data: { vehicleId }
+    });
 })
 
-export {registerVehicles, fetchVehicles}
+
+
+
+export {registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle}

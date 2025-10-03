@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { changeStatus, createEmployee, deleteEmployeeById, fetchEmployeeById, getEmployee, loginEmployee, logoutEmployee } from "../controllers/Employee.controllers.js";
+import { changeStatus, createEmployee, deleteEmployeeById, fetchEmployeeById, getEmployee, loginEmployee, logoutEmployee, updateEmployeeDetails } from "../controllers/Employee.controllers.js";
 import { verifyEmployeeToken, verifyNewGeneratedToken } from "../middlewares/Auth.middleware.js";
 
 const router = Router();
@@ -20,5 +20,7 @@ router.route('/logout').post(verifyEmployeeToken, logoutEmployee)
 
 //For Employee
 router.route('/status').post(verifyEmployeeToken, changeStatus)
+
+router.route('/:id').patch(verifyNewGeneratedToken, updateEmployeeDetails)
 
 export default router

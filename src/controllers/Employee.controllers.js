@@ -5,6 +5,7 @@ import { Validation } from "../utils/Validation.js";
 import bcrypt from "bcrypt"
 import { generateEmployeeToken } from "../utils/GenerateTokenWithOrg.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import vehicles from "../models/Vehicles.js";
 
 const createEmployee = asyncHandler(async(req, res) => {
     const{
@@ -269,6 +270,10 @@ const deleteEmployeeById = asyncHandler(async (req, res) => {
         throw new ApiErrors(403, "Only Admin can delete employees");
     }
 
+    if(employee.organizationId != req.user.organizationId) {
+        throw new ApiErrors(403, "Admin must be the part of the Organization")
+    }
+
     const employee = await Employee.findOne({
         where: {
             employeeId,
@@ -345,6 +350,47 @@ const changeStatus = asyncHandler(async(req, res) => {
 })
 
 
+const updateEmployeeDetails = asyncHandler(async (req, res) => {
+    if(!req.user) {
+        throw new ApiErrors(400, "Unauthorized Request")
+    }
+
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(400, "Only admin can update Employees Data")
+    }
+
+    const employee = await Employee.findByPk(req.params.id, {attributes: {exclude: ['password', 'refreshToken']}});
+
+    if(!employee) {
+        throw new ApiErrors(400, "Employee does not Exists")
+    }
+
+    if(employee.organizationId !== req.user.organizationId) {
+        throw new ApiErrors(400, "Employee does not belongs to this Organization")
+    }
+
+    const allowedUpdate = [
+        "email", "aadharNumber", "phone", "address", "panNumber",
+        "employeeName"
+    ];
+
+    const updateData = {}
+
+    allowedUpdate.forEach(field => {
+        if (req.body[field] !== undefined) updateData[field] = req.body[field];
+    })
+
+    updateData.updatedBy = req.user.id;
+
+    await employee.update(updateData);
+
+    return res.status(200).json({
+        message: "Employee details updated Successfully",
+        data: employee
+    });
+})
+
+
 export {
     createEmployee, 
     loginEmployee, 
@@ -352,5 +398,6 @@ export {
     fetchEmployeeById, 
     deleteEmployeeById, 
     logoutEmployee,
-    changeStatus
+    changeStatus,
+    updateEmployeeDetails
 };

@@ -18,7 +18,7 @@ router.route('/all').get(verifyToken, fetchOrganizations)
 
 //Update organization status (active/inactive)
 //[POST]http://localhost:5000/api/v1/organizations/status
-router.route('/status').post(verifyToken, organizationStatus)
+router.route('/switch').post(verifyToken, organizationStatus)
 
 //Update organization details
 //[PATCH]http://localhost:5000/api/v1/organizations/update

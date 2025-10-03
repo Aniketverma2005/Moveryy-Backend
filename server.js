@@ -7,6 +7,8 @@ import userRoutes from "./src/routes/user.routes.js";
 import organizationRoutes from "./src/routes/Organizations.routes.js";
 import employeeRoutes from "./src/routes/Employee.routes.js"
 import vehicleRoutes from "./src/routes/Vehicles.routes.js"
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./src/swagger/swagger.js";
 
 dotenv.config();
 
@@ -15,6 +17,9 @@ const port = process.env.PORT || 8000;
 
 app.use(express.json());
 app.use(cookieParser());
+
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Connect DB & start server
 (async () => {
