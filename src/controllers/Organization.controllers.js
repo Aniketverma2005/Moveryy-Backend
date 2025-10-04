@@ -166,15 +166,23 @@ const organizationStatus = asyncHandler(async (req, res) => {
 
 
 
+
 const updateOrganization = asyncHandler(async (req, res) => {
-    const organization = req.organization;
-    const updateData = req.body;
+
+    const { organizationId } = req.user;
 
     if(!req.user) {
         throw new ApiErrors(400, "Unauthorize Request")
     }
 
-    await organization.update(updateData);
+    const organization = await Organizations.findOne({ where: { organizationId } });
+
+    if (!organization) {
+        throw new ApiErrors(404, "Organization not found or inactive");
+    }
+
+    // Now safe to call update
+    await organization.update(req.body);
 
     return res
     .status(200)
