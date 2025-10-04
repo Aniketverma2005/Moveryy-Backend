@@ -137,39 +137,44 @@ const organizationStatus = asyncHandler(async (req, res) => {
     }
 
     const organization = await Organizations.findOne({
-        where: { 
-            organizationId, 
-            userId: req.user.id 
-        }
+        where: { organizationId, userId: req.user.id },
     });
 
     if (!organization) {
-        throw new ApiErrors(404, "Organization not found or user does not belong to the organization");
+        throw new ApiErrors(404, "Organization not found or user does not belong to it");
     }
 
-    // Toggle status automatically
-    organization.status = organization.status === "inactive" ? "active" : "inactive";
+    // Ensure only one org active at a time
+    await Organizations.update(
+        { status: "inactive" },
+        { where: { userId: req.user.id } }
+    );
+
+    // Activate the selected organization
+    organization.status = "active";
     await organization.save();
 
-
-    let token = null;
-    if(organization.status === "active") {
-        token = await generateTokenWithOrg(req.user.id, organization.organizationId)
-    }
+    // Generate new token
+    const token = await generateTokenWithOrg(req.user.id, organization.organizationId);
 
     return res.status(200).json({
-        message: `Organization status changed to ${organization.status}`,
+        message: `Organization '${organization.organizationName}' activated successfully`,
         data: organization,
-        token: token
+        token,
     });
 });
 
 
+
 const updateOrganization = asyncHandler(async (req, res) => {
     const organization = req.organization;
-    const updateDate = req.body;
+    const updateData = req.body;
 
-    await organization.update(updateDate);
+    if(!req.user) {
+        throw new ApiErrors(400, "Unauthorize Request")
+    }
+
+    await organization.update(updateData);
 
     return res
     .status(200)

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { verifyToken } from "../middlewares/Auth.middleware.js";
+import { verifyNewGeneratedToken, verifyToken } from "../middlewares/Auth.middleware.js";
 import { createOrganization, deleteOrganization, fetchOrganizations, organizationStatus, updateOrganization } from "../controllers/Organization.controllers.js";
 import activeOrganization from "../middlewares/ActiveOrganization.js";
 
@@ -10,7 +10,7 @@ router.use(verifyToken);
 
 //Create a new organization
 //[POST]http://localhost:5000/api/v1/organizations/create
-router.route('/create').post(verifyToken, createOrganization)
+router.route('/create').post(createOrganization)
 
 //Get all organizations of the logged in user
 //[GET]http://localhost:5000/api/v1/organizations/all
@@ -22,12 +22,12 @@ router.route('/switch').post(verifyToken, organizationStatus)
 
 //Update organization details
 //[PATCH]http://localhost:5000/api/v1/organizations/update
-router.route('/update').patch(verifyToken, activeOrganization, updateOrganization)
+router.route('/update').patch(verifyNewGeneratedToken, updateOrganization)
 
 
 //Delete an organization
 //[DELETE]http://localhost:5000/api/v1/organizations/:organizationId
-router.route('/:organizationId').delete(verifyToken, activeOrganization, deleteOrganization)
+router.route('/:organizationId').delete(verifyNewGeneratedToken, deleteOrganization)
 
 export default router;
 

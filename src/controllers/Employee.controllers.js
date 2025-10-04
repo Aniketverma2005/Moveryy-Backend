@@ -5,7 +5,6 @@ import { Validation } from "../utils/Validation.js";
 import bcrypt from "bcrypt"
 import { generateEmployeeToken } from "../utils/GenerateTokenWithOrg.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import vehicles from "../models/Vehicles.js";
 
 const createEmployee = asyncHandler(async(req, res) => {
     const{

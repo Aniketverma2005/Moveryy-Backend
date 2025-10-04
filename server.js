@@ -7,6 +7,7 @@ import userRoutes from "./src/routes/user.routes.js";
 import organizationRoutes from "./src/routes/Organizations.routes.js";
 import employeeRoutes from "./src/routes/Employee.routes.js"
 import vehicleRoutes from "./src/routes/Vehicles.routes.js"
+import offersRoutes from "./src/routes/Offers.routes.js"
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./src/swagger/swagger.js";
 
@@ -38,4 +39,5 @@ app.get("/", (req, res) => {
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/organizations", organizationRoutes);
 app.use("/api/v1/employee", employeeRoutes);
-app.use("/api/v1/vehicles", vehicleRoutes)
+app.use("/api/v1/vehicles", vehicleRoutes);
+app.use("/api/v1/offers", offersRoutes);

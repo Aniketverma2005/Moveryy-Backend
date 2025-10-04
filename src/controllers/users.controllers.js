@@ -3,6 +3,7 @@ import { ApiErrors } from "../utils/ApiErrors.js";
 import { Validation } from "../utils/Validation.js";
 import User from "../models/Users.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { generateTokenWithOrg } from "../utils/GenerateTokenWithOrg.js";
 import jwt from "jsonwebtoken";
 import Organizations from "../models/Organizations.js";
 
@@ -87,56 +88,110 @@ const registerUser = asyncHandler (async (req, res) => {
 
 
 //Login User using email and password
-const loginUser = asyncHandler (async (req, res) => {
-    const {email, password} = req.body;
+const loginUser = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
 
-    if(Validation.isEmpty(email) || !Validation.validateEmail(email)) {
+    // --- Validation ---
+    if (Validation.isEmpty(email) || !Validation.validateEmail(email)) {
         throw new ApiErrors(400, "A valid email is required");
     }
 
-    if(Validation.isEmpty(password)) {
+    if (Validation.isEmpty(password)) {
         throw new ApiErrors(400, "Password is required");
     }
 
-    const user = await User.findOne({where: {email}});
-    if(!user) {
+    // --- Fetch user ---
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
         throw new ApiErrors(404, "User not found");
     }
 
-
     const validPassword = await user.isPasswordCorrect(password);
-    if(!validPassword) {
-        throw new ApiErrors(401, "Incorrect Password");
+    if (!validPassword) {
+        throw new ApiErrors(401, "Incorrect password");
     }
 
+    // --- Default token (without org) ---
+    let accessToken = null;
+    let refreshToken = null;
+    let activeOrganization = null;
 
-    const { accessToken, refreshToken } = await generateAccessToken(user.id);
-    if(!accessToken) {
+    // --- Handle admin organization logic ---
+    if (user.role === "admin") {
+        const organizations = await Organizations.findAll({ where: { userId: user.id } });
+
+        if (organizations.length === 0) {
+            throw new ApiErrors(404, "No organizations found for this admin");
+        }
+
+        if (organizations.length === 1) {
+            // Automatically activate the only organization
+            activeOrganization = organizations[0];
+            if (activeOrganization.status !== "active") {
+                activeOrganization.status = "active";
+                await activeOrganization.save();
+            }
+
+            // Generate token with org context
+            const tokens = await generateTokenWithOrg(user.id, activeOrganization.organizationId);
+            accessToken = tokens.accessToken;
+            refreshToken = tokens.refreshToken;
+        } else {
+            //If multiple orgs, keep them all inactive — admin must activate one manually
+            await Organizations.update(
+                { status: "inactive" },
+                { where: { userId: user.id } }
+            );
+
+            // Temporary token (without org)
+            const tokens = await generateAccessToken(user.id);
+            accessToken = tokens.accessToken;
+            refreshToken = tokens.refreshToken;
+        }
+    } else {
+        //Normal user — generate standard token
+        const tokens = await generateAccessToken(user.id);
+        accessToken = tokens.accessToken;
+        refreshToken = tokens.refreshToken;
+    }
+
+    if (!accessToken) {
         throw new ApiErrors(500, "Could not generate access token. Please try again");
     }
 
-    const loggedInUser = await User.findByPk(user.id, {attributes: {exclude: ['password', 'refreshToken']}});
+    // --- Remove sensitive data ---
+    const loggedInUser = await User.findByPk(user.id, {
+        attributes: { exclude: ["password", "refreshToken"] },
+    });
 
     const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-    }
+    };
 
     return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-        new ApiResponse(
-            200,
-            {
-                user: loggedInUser, accessToken, refreshToken
-            }
-            , "User logged in Successfully"
-        )
-    )
-
-})
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    user: loggedInUser,
+                    activeOrganization: activeOrganization
+                        ? {
+                              organizationId: activeOrganization.organizationId,
+                              name: activeOrganization.organizationName,
+                              status: activeOrganization.status,
+                          }
+                        : null,
+                    accessToken,
+                    refreshToken,
+                },
+                "User logged in successfully"
+            )
+        );
+});
 
 
 //Logout user
