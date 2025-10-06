@@ -228,6 +228,36 @@ const deleteVehicle = asyncHandler(async (req, res) => {
 })
 
 
+const countVehicle = asyncHandler(async (req, res) => {
+    if(!req.user) {
+        throw new ApiErrors(400, "Unauthorize Access")
+    }
+
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(401, "Only admin can access this data")
+    }
+
+    const organizationId = req.user.organizationId;
+
+    if(!organizationId) {
+        throw new ApiErrors(403, "user must be the part of Organization")
+    }
+
+    const vehicleCount = await Vehicles.count({
+        organization: organizationId
+    })
+
+    return res
+    .status(200)
+    .json({
+        message: "Total vehicle fetched Successfully",
+        data: {
+            organizationId,
+            totalEmployees: vehicleCount
+        }
+    });
+});
 
 
-export {registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle}
+
+export {registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle, countVehicle}

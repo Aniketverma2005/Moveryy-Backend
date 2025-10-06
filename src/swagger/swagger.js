@@ -10,7 +10,7 @@ const options = {
       description: "Automatically generated Swagger docs",
     },
   },
-  apis: ["src/swagger/**/*.js"], // relative to project root
+  apis: ["src/routes/**/*.js", "src/swagger/**/*.js"]
 };
 
 export const swaggerSpec = swaggerJSDoc(options);

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle } from "../controllers/Vehicles.controllers.js";
+import { registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle, countVehicle } from "../controllers/Vehicles.controllers.js";
 import { verifyNewGeneratedToken } from "../middlewares/Auth.middleware.js";
 
 
@@ -12,5 +12,7 @@ router.route('/all').get(verifyNewGeneratedToken, fetchVehicles)
 router.route('/:id').patch(verifyNewGeneratedToken, updateVehicleData)
 
 router.route('/:vehicleId').delete(verifyNewGeneratedToken, deleteVehicle)
+
+router.route('').get(verifyNewGeneratedToken, countVehicle)
 
 export default router;

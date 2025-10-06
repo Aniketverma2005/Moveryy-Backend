@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiErrors } from "../utils/ApiErrors.js";
 import { Validation } from "../utils/Validation.js";
 import Offers from "../models/Offers.js";
+import offers from "../models/Offers.js";
 
 
 const createOffers = asyncHandler(async (req, res) => {
@@ -56,7 +57,7 @@ const createOffers = asyncHandler(async (req, res) => {
             throw new ApiErrors(409, "Offer Already Exists")
         }
     } catch (error) {
-        throw new ApiErrors(error)
+        throw new ApiErrors(500, error.message || "Internal Server Error")
     }
 
     const newOffers = await Offers.create({
@@ -86,4 +87,134 @@ const createOffers = asyncHandler(async (req, res) => {
     });
 });
 
-export {createOffers}
+
+const getOffers = asyncHandler(async (req, res) => {
+    if(!req.user) {
+        throw new ApiErrors(400, "Unauthorize Access")
+    }
+
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(400, "Admin can only Access this data")
+    }
+
+    const organization = req.user.organizationId;
+
+    if(!organization) {
+        throw new ApiErrors(400, "Admin must be the part of this Organization")
+    }
+
+    try {
+        const offers = await Offers.findAll({
+            where: {organizationId: organization},
+            order: [["offerId", "ASC"]]
+        })
+    
+        return res
+        .status(200)
+        .json({
+            message:"Offers fetched Successfully",
+            offers: offers
+        })
+    } catch (error) {
+        throw new ApiErrors(500, error.message || "Internal Server Error")
+    }
+})
+
+
+const deleteOffers = asyncHandler(async (req, res) => {
+    const{ offerId } = req.params;
+
+    if(!req.user) {
+        throw new ApiErrors(400, "Unauthorize Access")
+    }
+
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(400, "Admin can only Access this data")
+    }
+
+    const organization = req.user.organizationId;
+
+    if(!organization) {
+        throw new ApiErrors(400, "Admin must be the part of this Organization")
+    }
+
+    const offers = await Offers.findOne({
+        where: {
+            offerId, 
+            organizationId: organization
+        },
+    })
+
+    if(!offers) {
+        throw new ApiErrors(400, "Offer not Found")
+    }
+
+    await offers.destroy();
+
+    return res
+    .status(200)
+    .json({
+        message: "Offers deleted Successfully"
+    })
+})
+
+
+const updateOffers = asyncHandler(async (req, res) => {
+    const { offerId } = req.params;
+
+    if (!req.user) {
+        throw new ApiErrors(400, "Unauthorized Access");
+    }
+
+    if (req.user.role !== "admin") {
+        throw new ApiErrors(400, "Only admin can access this data");
+    }
+
+    const organization = req.user.organizationId;
+
+    if (!organization) {
+        throw new ApiErrors(400, "Admin must be part of this Organization");
+    }
+
+    //Find offer by ID and organization
+    const offers = await Offers.findOne({
+        where: {
+            offerId,
+            organizationId: organization,
+        },
+    });
+
+    if (!offers) {
+        throw new ApiErrors(400, "Offer not found");
+    }
+
+    const allowedUpdates = [
+        "offerName",
+        "startDate",
+        "endDate",
+        "discountValue",
+        "discountType",
+    ];
+
+    const updateData = {};
+    allowedUpdates.forEach((field) => {
+        if (req.body[field] !== undefined) updateData[field] = req.body[field];
+    });
+
+    updateData.updatedBy = req.user.id;
+
+    await offers.update(updateData);
+
+    return res.status(200).json({
+        message: "Offer updated successfully",
+        data: offers,
+    });
+});
+
+
+export {
+    createOffers,
+    getOffers,
+    deleteOffers,
+    updateOffers
+}

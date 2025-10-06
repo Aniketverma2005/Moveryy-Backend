@@ -88,6 +88,7 @@ const registerUser = asyncHandler (async (req, res) => {
 
 
 //Login User using email and password
+// Login User using email and password
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
@@ -111,50 +112,70 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new ApiErrors(401, "Incorrect password");
     }
 
-    // --- Default token (without org) ---
+    // --- Default variables ---
     let accessToken = null;
     let refreshToken = null;
     let activeOrganization = null;
+    let totalOrganization = null;
+    let organizations = [];
 
     // --- Handle admin organization logic ---
     if (user.role === "admin") {
-        const organizations = await Organizations.findAll({ where: { userId: user.id } });
+        organizations = await Organizations.findAll({ where: { userId: user.id } });
+        const orgCount = organizations.length;
 
-        if (organizations.length === 0) {
-            throw new ApiErrors(404, "No organizations found for this admin");
-        }
+        if (orgCount === 0) {
+            // --- Case: Admin has no organization ---
+            totalOrganization = "NO_ORG";
 
-        if (organizations.length === 1) {
-            // Automatically activate the only organization
+            // Generate temporary token (no org context)
+            const tokens = await generateAccessToken(user.id);
+            accessToken = tokens.accessToken;
+            refreshToken = tokens.refreshToken;
+        } 
+        else if (orgCount === 1) {
+            // --- Case: Admin has exactly one organization ---
+            totalOrganization = "SINGLE_ORG";
             activeOrganization = organizations[0];
+
+            // Ensure organization is active
             if (activeOrganization.status !== "active") {
                 activeOrganization.status = "active";
                 await activeOrganization.save();
             }
 
             // Generate token with org context
-            const tokens = await generateTokenWithOrg(user.id, activeOrganization.organizationId);
+            const tokens = await generateTokenWithOrg(
+                user.id,
+                activeOrganization.organizationId
+            );
             accessToken = tokens.accessToken;
             refreshToken = tokens.refreshToken;
-        } else {
-            //If multiple orgs, keep them all inactive — admin must activate one manually
+        } 
+        else {
+            // --- Case: Admin has multiple organizations ---
+            totalOrganization = "MULTI_ORG";
+
+            // Deactivate all orgs (admin must select one in UI)
             await Organizations.update(
                 { status: "inactive" },
                 { where: { userId: user.id } }
             );
 
-            // Temporary token (without org)
+            // Generate token (no active org context yet)
             const tokens = await generateAccessToken(user.id);
             accessToken = tokens.accessToken;
             refreshToken = tokens.refreshToken;
         }
-    } else {
-        //Normal user — generate standard token
+    } 
+    else {
+        // --- Normal user login ---
         const tokens = await generateAccessToken(user.id);
         accessToken = tokens.accessToken;
         refreshToken = tokens.refreshToken;
     }
 
+    // --- Safety check ---
     if (!accessToken) {
         throw new ApiErrors(500, "Could not generate access token. Please try again");
     }
@@ -169,6 +190,10 @@ const loginUser = asyncHandler(async (req, res) => {
         secure: process.env.NODE_ENV === "production",
     };
 
+    // --- Determine if admin needs to create org ---
+    const needsOrganizationSetup = totalOrganization === "NO_ORG";
+
+    // --- Final response ---
     return res
         .status(200)
         .cookie("accessToken", accessToken, options)
@@ -185,6 +210,8 @@ const loginUser = asyncHandler(async (req, res) => {
                               status: activeOrganization.status,
                           }
                         : null,
+                    organizationStatus: totalOrganization, // NO_ORG, SINGLE_ORG, MULTI_ORG
+                    needsOrganizationSetup,               // true if admin has no org
                     accessToken,
                     refreshToken,
                 },
@@ -192,6 +219,8 @@ const loginUser = asyncHandler(async (req, res) => {
             )
         );
 });
+
+
 
 
 //Logout user

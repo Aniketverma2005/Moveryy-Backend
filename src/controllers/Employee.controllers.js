@@ -5,6 +5,7 @@ import { Validation } from "../utils/Validation.js";
 import bcrypt from "bcrypt"
 import { generateEmployeeToken } from "../utils/GenerateTokenWithOrg.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { or } from "sequelize";
 
 const createEmployee = asyncHandler(async(req, res) => {
     const{
@@ -126,65 +127,73 @@ const createEmployee = asyncHandler(async(req, res) => {
 });
 
 
-const loginEmployee = asyncHandler(async(req, res) => {
-    const{ email, password} = req.body
+const loginEmployee = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
 
-    if(!email) {
-        throw new ApiErrors(401, "Email is required");
-    }
+  if (!email) {
+    throw new ApiErrors(401, "Email is required");
+  }
 
-    if(!password) {
-        throw new ApiErrors(401, "Enter a valid Password");
-    }
+  if (!password) {
+    throw new ApiErrors(401, "Enter a valid Password");
+  }
 
+  // Find active employee by email
+  const employee = await Employee.findOne({
+    where: { email: email.toLowerCase(), isActive: true },
+  });
 
-    const employee = await Employee.findOne({
-        where:{email: email.toLowerCase(), isActive:true}
-    })
+  if (!employee) {
+    throw new ApiErrors(401, "Employee not found");
+  }
 
-    if(!employee) {
-        throw new ApiErrors(401, "Employee not found")
-    }
+  // Trim password to avoid extra spaces
+  const cleanPassword = password.trim();
 
-    const isMatch = await bcrypt.compare(password, employee.password)
+  // Compare entered password with hashed password
+  const isMatch = await bcrypt.compare(cleanPassword, employee.password.toString().trim());
 
-    if(!isMatch) {
-        throw new ApiErrors(401, "Incorrect password")
-    }
+  if (!isMatch) {
+    console.log("Password mismatch debug:", { input: cleanPassword, stored: employee.password });
+    throw new ApiErrors(401, "Incorrect password");
+  }
 
-    const {accessToken, refreshToken} = await generateEmployeeToken(employee.employeeId)
+  // Generate JWT tokens
+  const { accessToken, refreshToken } = await generateEmployeeToken(employee.employeeId);
 
-    if(!accessToken) {
-        throw new ApiErrors(500, "Could not generate access token. Please try again");
-    }
+  if (!accessToken) {
+    throw new ApiErrors(500, "Could not generate access token. Please try again");
+  }
 
-    employee.refreshToken = refreshToken;
-    employee.status = "available";
-    await employee.save();
+  // Update employee status and refresh token
+  employee.refreshToken = refreshToken;
+  employee.status = "available";
+  await employee.save();
 
-    const loggedInEmployee = await Employee.findByPk(employee.employeeId, {attributes: {exclude: ['password', 'refreshToken']}})
-    
+  // Fetch employee excluding sensitive fields
+  const loggedInEmployee = await Employee.findByPk(employee.employeeId, {
+    attributes: { exclude: ["password", "refreshToken"] },
+  });
 
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-    }
+  // Cookie options
+  const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  };
 
-
-    return res
+  return res
     .status(200)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
     .json(
-        new ApiResponse(
-            200,
-            "Employee logged in Successfully",
-            {
-                employee: loggedInEmployee, accessToken, refreshToken
-            }
-        )
-    )
-})
+      new ApiResponse(200, "Employee logged in Successfully", {
+        employee: loggedInEmployee,
+        accessToken,
+        refreshToken,
+      })
+    );
+});
 
 
 const getEmployee = asyncHandler(async(req, res) => {
@@ -269,10 +278,6 @@ const deleteEmployeeById = asyncHandler(async (req, res) => {
         throw new ApiErrors(403, "Only Admin can delete employees");
     }
 
-    if(employee.organizationId != req.user.organizationId) {
-        throw new ApiErrors(403, "Admin must be the part of the Organization")
-    }
-
     const employee = await Employee.findOne({
         where: {
             employeeId,
@@ -284,6 +289,11 @@ const deleteEmployeeById = asyncHandler(async (req, res) => {
     if (!employee) {
         throw new ApiErrors(404, "Employee not found");
     }
+
+    if(employee.organizationId != req.user.organizationId) {
+        throw new ApiErrors(403, "Admin must be the part of the Organization")
+    }
+
 
     employee.isActive = false;
     employee.updatedBy = req.user.id;
@@ -390,6 +400,40 @@ const updateEmployeeDetails = asyncHandler(async (req, res) => {
 })
 
 
+const countEmployee = asyncHandler(async(req, res) => {
+    if(!req.user) {
+        throw new ApiErrors(400, "Unauthorize Access")
+    }
+
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(401, "Only admin can access this data")
+    }
+
+    const organizationId = req.user.organizationId;
+
+    if(!organizationId) {
+        throw new ApiErrors(403, "User must be the part of the organization")
+    }
+
+    const employeeCount = await Employee.count({
+        where: {
+            organizationId: organizationId
+        }
+    });
+
+    return res
+    .status(200)
+    .json({
+        success: true,
+        message: "Employee count fetched successfully",
+        data: {
+            organizationId,
+            totalEmployees: employeeCount
+        }
+    });
+})
+
+
 export {
     createEmployee, 
     loginEmployee, 
@@ -398,5 +442,6 @@ export {
     deleteEmployeeById, 
     logoutEmployee,
     changeStatus,
-    updateEmployeeDetails
+    updateEmployeeDetails,
+    countEmployee
 };
