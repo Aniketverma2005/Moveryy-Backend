@@ -253,7 +253,7 @@ const countVehicle = asyncHandler(async (req, res) => {
         message: "Total vehicle fetched Successfully",
         data: {
             organizationId,
-            totalEmployees: vehicleCount
+            totalVehicle: vehicleCount
         }
     });
 });
