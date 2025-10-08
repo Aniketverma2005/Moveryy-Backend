@@ -59,6 +59,12 @@ const vehicles = sequelize.define("vehicles", {
             isIn: [["available", "on-duty"]] 
         }
     },
+    hasOffer: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
+
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
@@ -81,5 +87,8 @@ const vehicles = sequelize.define("vehicles", {
     }
 
 }, {timestamps: true})
+
+
+
 
 export default vehicles;

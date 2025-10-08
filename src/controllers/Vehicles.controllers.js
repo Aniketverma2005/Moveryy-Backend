@@ -1,7 +1,9 @@
 import { ApiErrors } from "../utils/ApiErrors.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Validation } from "../utils/Validation.js";
-import Vehicles from "../models/Vehicles.js"
+import { Op } from "sequelize";
+import { Vehicles, VehiclesOffer } from "../models/index.js";
+
 
 
 
@@ -101,6 +103,7 @@ const registerVehicles = asyncHandler(async (req, res) => {
         serviceType,
         registrarName,
         chassisNumber,
+        hasOffer: false,
         createdBy: req.user.id,
         updatedBy: req.user.id
     })
@@ -122,34 +125,44 @@ const registerVehicles = asyncHandler(async (req, res) => {
 });
 
 
+
 const fetchVehicles = asyncHandler(async (req, res) => {
+  if (!req.user) throw new ApiErrors(401, "Unauthorized Access");
+  if (req.user.role !== "admin") throw new ApiErrors(403, "Only Admin can Access this data");
 
-    const organizationId = req.user.organizationId;
+  const organizationId = req.user.organizationId;
 
-    if(!req.user) {
-        throw new ApiErrors(401, "Unauthorized Access")
-    }
+  try {
+    // Fetch all vehicles for the organization
+    const vehicles = await Vehicles.findAll({
+      where: { organizationId },
+      attributes: [
+        "vehicleId",
+        "vehicleName",
+        "registrationNumber",
+        "manufacturer",
+        "vehicleType",
+        "capacityValue",
+        "capacityUnit",
+        "registrarName",
+        "chassisNumber",
+        "serviceType",
+        "status",
+        "isActive",
+        "hasOffer", // directly return the boolean field
+        "createdBy",
+        "createdAt",
+      ],
+      order: [["vehicleId", "ASC"]],
+    });
 
-    if(req.user.role !== "admin") {
-        throw new ApiErrors(401, "Only Admin can Access this data")
-    }
-
-    try {
-        const vehicles = await Vehicles.findAll({
-            where: {organizationId},
-            order: [["vehicleId", "ASC"]]
-        })
-    
-        return res
-        .status(200)
-        .json({
-            message:"Vehicles fetched Successfully",
-            vehicles: vehicles
-        })
-    } catch (error) {
-        throw new ApiErrors(error)
-    }
-
+    return res.status(200).json({
+      message: "Vehicles fetched Successfully",
+      vehicles,
+    });
+  } catch (error) {
+    throw new ApiErrors(error);
+  }
 });
 
 
@@ -168,12 +181,12 @@ const updateVehicleData = asyncHandler(async (req, res) => {
         throw new ApiErrors(404, "Vehicle not found");
     }
 
-    // Ensure same organization
+    
     if (vehicle.organizationId !== req.user.organizationId) {
         throw new ApiErrors(403, "You cannot update vehicles outside your organization");
     }
 
-    // Pick only allowed fields
+    
     const allowedUpdates = [
         "vehicleName", "vehicleType", "registrationNumber", 
         "manufacturer", "capacityValue", "capacityUnit", 

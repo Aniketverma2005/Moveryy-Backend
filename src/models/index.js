@@ -4,6 +4,7 @@ import Users from "./Users.js";
 import Organizations from "./Organizations.js";
 import Employee  from "../models/Employee.js";
 import Vehicles from "../models/Vehicles.js"
+import VehiclesOffer from "../models/VehiclesOffer.js"
 
 // Associations
 Users.hasMany(Organizations, { foreignKey: "userId", as: "organizations" });
@@ -26,6 +27,10 @@ Vehicles.belongsTo(Users, { foreignKey: "createdBy", as: "creator" });
 Vehicles.belongsTo(Users, { foreignKey: "updatedBy", as: "updater" });
 
 
+Vehicles.hasOne(VehiclesOffer, {foreignKey: "vehicleId", as: "offer",});
+VehiclesOffer.belongsTo(Vehicles, { foreignKey: "vehicleId", as: "vehicle",});
+
+
 const initDB = async () => {
   try {
     await sequelize.authenticate();
@@ -38,4 +43,4 @@ const initDB = async () => {
   }
 };
 
-export { sequelize, initDB, Users, Organizations, Employee, Vehicles};
+export { sequelize, initDB, Users, Organizations, Employee, Vehicles, VehiclesOffer};

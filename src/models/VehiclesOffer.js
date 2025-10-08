@@ -2,7 +2,8 @@ import { DataTypes } from "sequelize";
 import sequelize from "../database/db.js";
 
 
-const vehiclesOffer = sequelize.define("vehiclesOffers", {
+
+const VehiclesOffer = sequelize.define("vehiclesOffers", {
     vehicleOfferId: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -11,9 +12,10 @@ const vehiclesOffer = sequelize.define("vehiclesOffers", {
     vehicleId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        unique: true, 
         references: {
             model: "vehicles",
-            key: "vehicleId"
+            key: "vehicleId",
         },
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
@@ -71,4 +73,6 @@ const vehiclesOffer = sequelize.define("vehiclesOffers", {
 }, 
 {timestamps: true, freezeTableName: true});
 
-export default vehiclesOffer;
+
+
+export default VehiclesOffer;
