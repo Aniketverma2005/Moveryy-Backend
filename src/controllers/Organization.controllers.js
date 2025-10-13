@@ -3,7 +3,7 @@ import { ApiErrors } from "../utils/ApiErrors.js";
 import { Validation } from "../utils/Validation.js";
 import { generateTokenWithOrg } from "../utils/GenerateTokenWithOrg.js";
 import { Organizations } from "../models/index.js";
-import Users from "../models/Users.js";
+import Users from "../models/Users/Users.js";
 
 
 

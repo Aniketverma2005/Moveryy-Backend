@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser, updateUserFirstName, updateUserLastName } from "../controllers/users.controllers.js";
-import { loginUser } from "../controllers/users.controllers.js";
-import { logoutUser } from "../controllers/users.controllers.js";
+import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser, updateUserFirstName, updateUserLastName } from "../controllers/Users/users.controllers.js";
+import { loginUser } from "../controllers/Users/users.controllers.js";
+import { logoutUser } from "../controllers/Users/users.controllers.js";
 import { verifyToken } from "../middlewares/Auth.middleware.js";
 
 const router = Router();

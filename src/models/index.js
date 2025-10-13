@@ -1,6 +1,6 @@
 // src/models/index.js
 import sequelize from "../database/db.js";
-import Users from "./Users.js";
+import Users from "./Users/Users.js";
 import Organizations from "./Organizations.js";
 import Employee  from "../models/Employee.js";
 import Vehicles from "../models/Vehicles.js"

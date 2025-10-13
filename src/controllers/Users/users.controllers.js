@@ -1,11 +1,11 @@
-import {asyncHandler} from "../utils/asyncHandler.js";
-import { ApiErrors } from "../utils/ApiErrors.js";  
-import { Validation } from "../utils/Validation.js";
-import User from "../models/Users.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { generateTokenWithOrg } from "../utils/GenerateTokenWithOrg.js";
+import {asyncHandler} from "../../utils/asyncHandler.js";
+import { ApiErrors } from "../../utils/ApiErrors.js";  
+import { Validation } from "../../utils/Validation.js";
+import User from "../../models/Users/Users.js";
+import { ApiResponse } from "../../utils/ApiResponse.js";
+import { generateTokenWithOrg } from "../../utils/GenerateTokenWithOrg.js";
 import jwt from "jsonwebtoken";
-import Organizations from "../models/Organizations.js";
+import Organizations from "../../models/Organizations.js";
 
 
 //Generate JWT token
