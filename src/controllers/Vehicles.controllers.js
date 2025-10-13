@@ -45,7 +45,8 @@ const registerVehicles = asyncHandler(async (req, res) => {
         throw new ApiErrors(401, "Manufacturer is required")
     }
 
-    if(Validation.isEmpty(vehicleType)) {
+    const validType = ["truck", "6-wheeler", "8-wheeler"];
+    if(Validation.isEmpty(vehicleType) || !validType.includes(vehicleType.toLowerCase())) {
         throw new ApiErrors(401, "Enter the type of vehicle i.e. [truck, 6-wheeler, 8-wheeler, etc]")
     }
 

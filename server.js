@@ -9,6 +9,7 @@ import employeeRoutes from "./src/routes/Employee.routes.js"
 import vehicleRoutes from "./src/routes/Vehicles.routes.js"
 import offersRoutes from "./src/routes/Offers.routes.js"
 import vehicleOffersRoute from "./src/routes/VehiclesOffer.routes.js"
+import pricingPlanRoute from "./src/routes/PricingPlan.routes.js"
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./src/swagger/swagger.js";
 
@@ -43,3 +44,4 @@ app.use("/api/v1/employee", employeeRoutes);
 app.use("/api/v1/vehicles", vehicleRoutes);
 app.use("/api/v1/offers", offersRoutes);
 app.use("/api/v1/vehiclesOffer", vehicleOffersRoute);
+app.use("/api/v1/pricingPlan", pricingPlanRoute);
