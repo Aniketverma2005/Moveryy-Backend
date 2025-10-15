@@ -4,9 +4,10 @@ import { Validation } from "../utils/Validation.js";
 import { generateTokenWithOrg } from "../utils/GenerateTokenWithOrg.js";
 import { Organizations } from "../models/index.js";
 import Users from "../models/Users/Users.js";
+import { Client } from "@googlemaps/google-maps-services-js";
 
 
-
+const googleClient = new Client({});
 
 const createOrganization = asyncHandler(async (req, res) => {
 
@@ -56,6 +57,33 @@ const createOrganization = asyncHandler(async (req, res) => {
         throw new ApiErrors(400, "Address  is required");
     }
 
+    const fullAddress = `${addressLine1}, ${addressLine2 || ""}, ${city}, ${state}, ${country}, ${pincode}`;
+
+
+    let latitude = null;
+    let longitude = null;
+
+    try {
+        const geoResponse = await googleClient.geocode({
+            params: {
+                address: fullAddress,
+                key: process.env.GOOGLE_MAPS_API_KEY,
+            },
+        });
+
+        if(geoResponse.data.results.length > 0) {
+            const location = geoResponse.data.results[0].geometry.location;
+            latitude = location.lat;
+            longitude = location.lng;
+        }else{
+            console.error("Geocoding failed: no results found");
+        }
+
+    } catch (error) {
+        console.error("Geocoding Failed", error);
+    }
+
+
     const existingOrg = await Organizations.findOne({ where: { domain } });
     if (existingOrg) throw new ApiErrors(400, "Organization with this domain already exists");
 
@@ -90,6 +118,8 @@ const createOrganization = asyncHandler(async (req, res) => {
         pincode: pincode,
         addressLine1: addressLine1.toLowerCase(),
         addressLine2: addressLine2 ? addressLine2.toLowerCase() : null,
+        latitude,
+        longitude,
         userId: req.user.id
     })
 
@@ -165,8 +195,6 @@ const organizationStatus = asyncHandler(async (req, res) => {
 });
 
 
-
-
 const updateOrganization = asyncHandler(async (req, res) => {
 
     const { organizationId } = req.user;
@@ -230,6 +258,51 @@ const deleteOrganization = asyncHandler(async (req, res) => {
 })
 
 
+const fetchOrganizationByPin = asyncHandler(async (req, res) => {
+    const { pincode } = req.params;
+
+    if(!req.user) throw new ApiErrors(401, "Unauthorized Access");
+
+    if (!pincode || !Validation.validatePincode(pincode)) {
+        throw new ApiErrors(400, "A valid pincode is required");
+    }
+
+    const organizations = await Organizations.findAll({ where: { pincode } });
+
+    return res
+    .status(200)
+    .json({
+        message: "Organizations fetched successfully",
+        data: organizations
+    });
+})
+
+const fetchOrganizationById = asyncHandler(async (req, res) => {
+    const { organizationId } = req.params;
+
+    if(!req.user) {
+        throw new ApiErrors(401, "Unauthorized Access")
+    }
+
+    if(req.user.role !== "user") {
+        throw new ApiErrors(403, "Only users can access this route");
+    }
+
+    const organization = await Organizations.findOne({ where: { organizationId } });
+
+    if(!organization) {
+        throw new ApiErrors(404, "Organization not found");
+    }
+
+    return res
+    .status(200)
+    .json({
+        message: "Organization fetched successfully",
+        data: organization
+    })
+})
+
+
 
 
 
@@ -239,23 +312,9 @@ export {
     fetchOrganizations,
     organizationStatus,
     updateOrganization,
-    deleteOrganization
+    deleteOrganization,
+    fetchOrganizationByPin, 
+    fetchOrganizationById
 }
 
-// {
-//   "organizationName": "Moveryy transports",
-//   "organizationType": "Home Shift, Office Shifts, Car Shifts",
-//   "businessName": "Moveryy Transports Pvt Ltd",
-//   "about": "Your Moving Partner",
-//   "domain": "moveryy.com",
-//   "subdomain": "moveryy",
-//   "phone": "+911234567890",
-//   "logo":"",
-//   "email": "moveryy@moveryy.com",
-//   "country": "India",
-//   "state": "Maharashtra",
-//   "city": "Mumbai",
-//   "pincode": 400001,
-//   "addressLine1": "123, Business Street",
-//   "addressLine2": "5th Floor, Office 501"
-// }
+

@@ -3,13 +3,14 @@ import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import { initDB } from "./src/models/index.js";
-import userRoutes from "./src/routes/user.routes.js";
+import userRoutes from "./src/routes/Users/user.routes.js";
 import organizationRoutes from "./src/routes/Organizations.routes.js";
 import employeeRoutes from "./src/routes/Employee.routes.js"
 import vehicleRoutes from "./src/routes/Vehicles.routes.js"
 import offersRoutes from "./src/routes/Offers.routes.js"
 import vehicleOffersRoute from "./src/routes/VehiclesOffer.routes.js"
 import pricingPlanRoute from "./src/routes/PricingPlan.routes.js"
+import addressRoute from "./src/routes/Users/Address.routes.js"
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./src/swagger/swagger.js";
 
@@ -45,3 +46,4 @@ app.use("/api/v1/vehicles", vehicleRoutes);
 app.use("/api/v1/offers", offersRoutes);
 app.use("/api/v1/vehiclesOffer", vehicleOffersRoute);
 app.use("/api/v1/pricingPlan", pricingPlanRoute);
+app.use("/api/v1/address", addressRoute);

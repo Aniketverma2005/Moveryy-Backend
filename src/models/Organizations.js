@@ -77,7 +77,14 @@ const organizationSchema = sequelize.define("organizations", {
         type: DataTypes.STRING,
         allowNull: true,
     },
-
+    longitude: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+    },
+    latitude: {
+        type: DataTypes.DOUBLE,
+        allowNull: true,
+    },
     status: {
         type: DataTypes.ENUM("active", "inactive"),
         defaultValue: "inactive"
