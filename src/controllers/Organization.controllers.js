@@ -151,6 +151,10 @@ const fetchOrganizations = asyncHandler(async (req, res) =>  {
         throw new ApiErrors(401, "Unauthorized Token");
     }
 
+    if(req.user.role !== "admin") {
+        throw new ApiErrors(402, "Only Admin can access this data")
+    }
+
     const organizations = await Organizations.findAll({ where: { userId }, order: [['createdAt', 'ASC']] });
     //console.log(organizations);
 
