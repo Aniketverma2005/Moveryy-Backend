@@ -10,7 +10,15 @@
  * /api/v1/users/login:
  *   post:
  *     summary: Authenticate user and issue JWT
- *     description: Logs in a user with their email and password, returning user details, tokens, and organization info.
+ *     description: |
+ *       Logs in a user with their email and password.  
+ *       
+ *       This endpoint returns user details, access and refresh tokens, and organization-related information.  
+ *       
+ *       **Important Notes:**
+ *       - If `organizationStatus` is **SINGLE_ORG**, the user already has an active organization and does **not need to switch**.  
+ *       - If `organizationStatus` is **MULTI_ORG**, the user is associated with multiple organizations and must **switch organization** to get a new active token tied to that organization.  
+ *       - If `needsOrganizationSetup` is **true**, the user **has not yet created any organization** and must complete the organization setup process before proceeding.  
  *     tags:
  *       - Auth
  *     requestBody:
@@ -79,11 +87,33 @@
  *                         updatedAt:
  *                           type: string
  *                           format: date-time
- *                           example: "2025-10-05T12:51:51.000Z"
+ *                           example: "2025-10-05T13:59:50.000Z"
  *                     activeOrganization:
- *                       type: string
+ *                       type: object
  *                       nullable: true
- *                       example: null
+ *                       properties:
+ *                         organizationId:
+ *                           type: integer
+ *                           example: 10
+ *                         name:
+ *                           type: string
+ *                           example: moveryy packers and movers
+ *                         status:
+ *                           type: string
+ *                           example: active
+ *                     organizationStatus:
+ *                       type: string
+ *                       enum: [SINGLE_ORG, MULTI_ORG]
+ *                       example: SINGLE_ORG
+ *                       description: |
+ *                         - **SINGLE_ORG**: User has a single active organization and does not need to switch.
+ *                         - **MULTI_ORG**: User is part of multiple organizations and must switch to get a new active token.
+ *                     needsOrganizationSetup:
+ *                       type: boolean
+ *                       example: false
+ *                       description: |
+ *                         Indicates whether the user needs to set up an organization.
+ *                         If `true`, user has not yet created any organization and must complete setup.
  *                     accessToken:
  *                       type: string
  *                       example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...

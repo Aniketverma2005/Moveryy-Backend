@@ -2,9 +2,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiErrors } from "../utils/ApiErrors.js";
 import { Validation } from "../utils/Validation.js";
 import { generateTokenWithOrg } from "../utils/GenerateTokenWithOrg.js";
-import { Organizations } from "../models/index.js";
+import { Organizations, Vehicles } from "../models/index.js";
 import Users from "../models/Users/Users.js";
 import { Client } from "@googlemaps/google-maps-services-js";
+import Offers from "../models/Offers.js";
 
 
 const googleClient = new Client({});
@@ -294,11 +295,29 @@ const fetchOrganizationById = asyncHandler(async (req, res) => {
         throw new ApiErrors(404, "Organization not found");
     }
 
+    const vehicles = await Vehicles.findAll({
+        where: {
+            organizationId: organization.organizationId,
+            isActive: true
+        }
+    });
+
+    const offers = await Offers.findAll({
+        where: {
+            organizationId: organization.organizationId,
+            isActive: true
+        }
+    })
+
     return res
     .status(200)
     .json({
         message: "Organization fetched successfully",
-        data: organization
+        data: {
+            organization,
+            vehicles,
+            offers
+        }
     })
 })
 
