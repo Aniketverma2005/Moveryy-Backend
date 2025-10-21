@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle, countVehicle } from "../controllers/Vehicles.controllers.js";
-import { verifyNewGeneratedToken } from "../middlewares/Auth.middleware.js";
+import { registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle, countVehicle, getVehiclesWithPricing } from "../controllers/Vehicles.controllers.js";
+import { verifyNewGeneratedToken, verifyToken } from "../middlewares/Auth.middleware.js";
 
 
 const router = Router();
@@ -14,5 +14,7 @@ router.route('/:id').patch(verifyNewGeneratedToken, updateVehicleData)
 router.route('/:vehicleId').delete(verifyNewGeneratedToken, deleteVehicle)
 
 router.route('').get(verifyNewGeneratedToken, countVehicle)
+
+router.route('/available').get(verifyToken, getVehiclesWithPricing);
 
 export default router;

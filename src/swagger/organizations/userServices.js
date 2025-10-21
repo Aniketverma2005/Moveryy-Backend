@@ -223,3 +223,136 @@
  *       404:
  *         description: Organization not found
  */ 
+
+
+/**
+ * @swagger
+ * /api/v1/vehicles/available?organizationId=10&serviceType=houseshift&capacityValue=2&capacityUnit=bhk:
+ *   get:
+ *     summary: Fetch available vehicles with pricing based on service type and capacity
+ *     description: >
+ *       Retrieve a list of all vehicles under a given organization that match the selected
+ *       service type and capacity conditions. Pricing is determined based on the service,
+ *       capacity range, and organization — not vehicle type.
+ *     tags: [User Services]
+ *     parameters:
+ *       - in: query
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           example: 10
+ *         description: The ID of the organization whose vehicles you want to fetch.
+ *       - in: query
+ *         name: serviceType
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: houseshift
+ *         description: The service type selected by the user (e.g., houseshift, officeshift, carshift).
+ *       - in: query
+ *         name: capacityValue
+ *         required: true
+ *         schema:
+ *           type: number
+ *           example: 2
+ *         description: The capacity value selected by the user (e.g., number of BHK, tons, etc.).
+ *       - in: query
+ *         name: capacityUnit
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [bhk, tons, cubic_meters]
+ *           example: bhk
+ *         description: The unit for the selected capacity.
+ *     responses:
+ *       200:
+ *         description: Vehicles with pricing fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Vehicles with pricing fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       vehicleId:
+ *                         type: integer
+ *                         example: 3
+ *                       vehicleName:
+ *                         type: string
+ *                         example: Tata Magic
+ *                       vehicleType:
+ *                         type: string
+ *                         example: truck
+ *                       registrationNumber:
+ *                         type: string
+ *                         example: DL1AB1654
+ *                       manufacturer:
+ *                         type: string
+ *                         example: Tata Motors
+ *                       capacityValue:
+ *                         type: number
+ *                         example: 2
+ *                       capacityUnit:
+ *                         type: string
+ *                         example: bhk
+ *                       serviceType:
+ *                         type: string
+ *                         example: houseshift
+ *                       status:
+ *                         type: string
+ *                         example: available
+ *                       isActive:
+ *                         type: boolean
+ *                         example: true
+ *                       pricingPlan:
+ *                         type: object
+ *                         properties:
+ *                           pricingPlanId:
+ *                             type: integer
+ *                             example: 2
+ *                           organizationId:
+ *                             type: integer
+ *                             example: 10
+ *                           serviceType:
+ *                             type: string
+ *                             example: houseshift
+ *                           vehicleType:
+ *                             type: string
+ *                             example: van
+ *                           minCapacity:
+ *                             type: number
+ *                             example: 1
+ *                           maxCapacity:
+ *                             type: number
+ *                             example: 3
+ *                           capacityUnit:
+ *                             type: string
+ *                             example: bhk
+ *                           baseRate:
+ *                             type: number
+ *                             example: 1500
+ *                           pricePerKm:
+ *                             type: number
+ *                             example: 25
+ *                           surgeCharges:
+ *                             type: number
+ *                             example: 0.08
+ *       400:
+ *         description: Missing or invalid query parameters
+ *       401:
+ *         description: Unauthorized access
+ *       403:
+ *         description: Access forbidden (only users can call this endpoint)
+ *       404:
+ *         description: No vehicles or pricing plans found for the given filters
+ */

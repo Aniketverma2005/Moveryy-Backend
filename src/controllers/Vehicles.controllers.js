@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Validation } from "../utils/Validation.js";
 import { Op } from "sequelize";
 import { Vehicles, VehiclesOffer } from "../models/index.js";
+import PricingPlans from "../models/PricingPlans.js";
 
 
 
@@ -274,4 +275,105 @@ const countVehicle = asyncHandler(async (req, res) => {
 
 
 
-export {registerVehicles, fetchVehicles, updateVehicleData, deleteVehicle, countVehicle}
+const getVehiclesWithPricing = asyncHandler(async (req, res) => {
+    const { organizationId, serviceType, capacityValue, capacityUnit } = req.query;
+
+    // Check user auth and role
+    if (!req.user) throw new ApiErrors(401, "Unauthorized Access");
+    if (req.user.role !== "user") throw new ApiErrors(403, "Only users can access this data");
+
+    //Validate required fields
+    if (Validation.isEmpty(organizationId))
+        throw new ApiErrors(400, "Organization ID is required");
+
+    if (Validation.isEmpty(serviceType))
+        throw new ApiErrors(400, "Service Type is required");
+
+    if (Validation.isEmpty(capacityValue) || isNaN(capacityValue))
+        throw new ApiErrors(400, "Enter a valid capacity value");
+
+    const validUnits = ["bhk", "tons", "cubic_meters"];
+    if (Validation.isEmpty(capacityUnit) || !validUnits.includes(capacityUnit.toLowerCase()))
+        throw new ApiErrors(400, "Capacity Unit must be one of [bhk, tons, cubic_meters]");
+
+    const normalizedService = serviceType.toLowerCase();
+    const normalizedUnit = capacityUnit.toLowerCase();
+    const numericCapacity = parseFloat(capacityValue);
+
+    //Fetch pricing plan purely by service type and capacity range
+    const pricingPlan = await PricingPlans.findOne({
+        where: {
+            organizationId,
+            serviceType: normalizedService,
+            capacityUnit: normalizedUnit,
+            minCapacity: { [Op.lte]: numericCapacity },
+            maxCapacity: { [Op.gte]: numericCapacity },
+        },
+        attributes: [
+            "pricingPlanId",
+            "organizationId",
+            "serviceType",
+            "vehicleType",
+            "minCapacity",
+            "maxCapacity",
+            "capacityUnit",
+            "baseRate",
+            "pricePerKm",
+            "surgeCharges"
+        ],
+    });
+
+    if (!pricingPlan)
+        throw new ApiErrors(404, "No pricing plan found for this service and capacity");
+
+    // Fetch vehicles in that organization with same service + capacity unit
+    const vehicles = await Vehicles.findAll({
+        where: {
+            organizationId,
+            serviceType: normalizedService,
+            capacityUnit: normalizedUnit,
+            isActive: true
+        },
+        attributes: [
+            "vehicleId",
+            "vehicleName",
+            "vehicleType",
+            "registrationNumber",
+            "manufacturer",
+            "capacityValue",
+            "capacityUnit",
+            "serviceType",
+            "status",
+            "isActive"
+        ],
+        order: [["vehicleId", "ASC"]],
+    });
+
+    if (!vehicles.length)
+        throw new ApiErrors(404, "No vehicles found for this organization and service");
+
+    // Attach the same pricing plan to all matching vehicles
+    const mergedResults = vehicles.map(vehicle => ({
+        ...vehicle.toJSON(),
+        pricingPlan,
+    }));
+
+    // Return response
+    return res.status(200).json({
+        success: true,
+        message: "Vehicles with pricing fetched successfully",
+        data: mergedResults
+    });
+});
+
+
+
+
+export {
+    registerVehicles,
+    fetchVehicles, 
+    updateVehicleData, 
+    deleteVehicle, 
+    countVehicle, 
+    getVehiclesWithPricing
+}
