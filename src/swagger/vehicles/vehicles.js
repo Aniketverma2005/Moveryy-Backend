@@ -422,3 +422,92 @@
  *       403:
  *         description: Only admin users can access this API
  */
+
+
+/**
+ * @swagger
+ * /api/v1/vehicles/{vehicleId}/offers:
+ *   get:
+ *     tags: [Vehicles]
+ *     summary: Fetch all offers for a specific vehicle (user only)
+ *     description: Returns all active offers associated with the given vehicle ID. Includes vehicle-specific, organization-wide, and service-type offers.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: vehicleId
+ *         in: path
+ *         required: true
+ *         description: ID of the vehicle
+ *         schema:
+ *           type: integer
+ *           example: 2
+ *     responses:
+ *       200:
+ *         description: Vehicle offers fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Vehicle offers fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       vehicleOfferId:
+ *                         type: integer
+ *                         example: 3
+ *                       vehicleId:
+ *                         type: integer
+ *                         example: 2
+ *                       organizationId:
+ *                         type: integer
+ *                         example: 10
+ *                       offerName:
+ *                         type: string
+ *                         example: Diwali Discount
+ *                       startDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-10-10T00:00:00.000Z
+ *                       endDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-10-31T00:00:00.000Z
+ *                       discountValue:
+ *                         type: string
+ *                         example: "15.00"
+ *                       discountType:
+ *                         type: string
+ *                         enum: [percentage, value]
+ *                         example: percentage
+ *                       isActive:
+ *                         type: boolean
+ *                         example: true
+ *                       createdBy:
+ *                         type: integer
+ *                         example: 1
+ *                       updatedBy:
+ *                         type: integer
+ *                         example: 1
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-10-08T14:29:53.000Z
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-10-08T14:29:53.000Z
+ *       401:
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Only user role can access this API
+ *       404:
+ *         description: Vehicle not found
+ */

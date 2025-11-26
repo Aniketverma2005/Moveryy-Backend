@@ -2,7 +2,6 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiErrors } from "../utils/ApiErrors.js";
 import { Validation } from "../utils/Validation.js";
 import Offers from "../models/Offers.js";
-import offers from "../models/Offers.js";
 
 
 const createOffers = asyncHandler(async (req, res) => {
@@ -210,6 +209,8 @@ const updateOffers = asyncHandler(async (req, res) => {
         data: offers,
     });
 });
+
+
 
 
 export {

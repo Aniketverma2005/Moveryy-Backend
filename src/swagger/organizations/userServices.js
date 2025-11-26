@@ -225,15 +225,16 @@
  */ 
 
 
+
 /**
  * @swagger
- * /api/v1/vehicles/available?organizationId=10&serviceType=houseshift&capacityValue=2&capacityUnit=bhk:
+ * /api/v1/vehicles/available?organizationId=10&serviceType=houseshift&capacityValue=2&capacityUnit=bhk&distance=70:
  *   get:
- *     summary: Fetch available vehicles with pricing based on service type and capacity
+ *     summary: Fetch available vehicles with pricing based on service type, capacity, and distance
  *     description: >
- *       Retrieve a list of all vehicles under a given organization that match the selected
- *       service type and capacity conditions. Pricing is determined based on the service,
- *       capacity range, and organization — not vehicle type.
+ *       Retrieve a list of vehicles under a given organization that match the selected
+ *       service type and capacity. Pricing is calculated using the pricing plan and the
+ *       distance entered by the user.
  *     tags: [User Services]
  *     parameters:
  *       - in: query
@@ -256,7 +257,7 @@
  *         schema:
  *           type: number
  *           example: 2
- *         description: The capacity value selected by the user (e.g., number of BHK, tons, etc.).
+ *         description: The capacity value selected by the user.
  *       - in: query
  *         name: capacityUnit
  *         required: true
@@ -265,6 +266,13 @@
  *           enum: [bhk, tons, cubic_meters]
  *           example: bhk
  *         description: The unit for the selected capacity.
+ *       - in: query
+ *         name: distance
+ *         required: true
+ *         schema:
+ *           type: number
+ *           example: 70
+ *         description: Distance between start and end locations in kilometers.
  *     responses:
  *       200:
  *         description: Vehicles with pricing fetched successfully
@@ -347,12 +355,16 @@
  *                           surgeCharges:
  *                             type: number
  *                             example: 0.08
+ *                       totalPrice:
+ *                         type: number
+ *                         example: 3250.08
  *       400:
  *         description: Missing or invalid query parameters
  *       401:
  *         description: Unauthorized access
  *       403:
- *         description: Access forbidden (only users can call this endpoint)
+ *         description: Only users can call this endpoint
  *       404:
- *         description: No vehicles or pricing plans found for the given filters
+ *         description: No vehicles or pricing plans found
  */
+

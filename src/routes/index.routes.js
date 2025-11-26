@@ -1,0 +1,23 @@
+import express from "express";
+
+import userRoutes from "./Users/user.routes.js";
+import addressRoutes from "./Users/Address.routes.js";
+import organizationRoutes from "./Organizations.routes.js";
+import employeeRoutes from "./Employee.routes.js";
+import vehicleRoutes from "./Vehicles.routes.js";
+import offersRoutes from "./Offers.routes.js";
+import vehicleOffersRoutes from "./VehiclesOffer.routes.js";
+import pricingPlanRoutes from "./PricingPlan.routes.js";
+
+const router = express.Router();
+
+router.use("/users", userRoutes);
+router.use("/address", addressRoutes);
+router.use("/organizations", organizationRoutes);
+router.use("/employee", employeeRoutes);
+router.use("/vehicles", vehicleRoutes);
+router.use("/offers", offersRoutes);
+router.use("/vehiclesOffer", vehicleOffersRoutes);
+router.use("/pricingPlan", pricingPlanRoutes);
+
+export default router;

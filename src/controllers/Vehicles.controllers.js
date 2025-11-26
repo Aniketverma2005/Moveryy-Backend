@@ -276,7 +276,7 @@ const countVehicle = asyncHandler(async (req, res) => {
 
 
 const getVehiclesWithPricing = asyncHandler(async (req, res) => {
-    const { organizationId, serviceType, capacityValue, capacityUnit } = req.query;
+    const { organizationId, serviceType, capacityValue, capacityUnit, distance } = req.query;
 
     // Check user auth and role
     if (!req.user) throw new ApiErrors(401, "Unauthorized Access");
@@ -295,6 +295,9 @@ const getVehiclesWithPricing = asyncHandler(async (req, res) => {
     const validUnits = ["bhk", "tons", "cubic_meters"];
     if (Validation.isEmpty(capacityUnit) || !validUnits.includes(capacityUnit.toLowerCase()))
         throw new ApiErrors(400, "Capacity Unit must be one of [bhk, tons, cubic_meters]");
+
+    if (Validation.isEmpty(distance) || isNaN(distance))
+        throw new ApiErrors(400, "Enter a valid distance");
 
     const normalizedService = serviceType.toLowerCase();
     const normalizedUnit = capacityUnit.toLowerCase();
@@ -353,10 +356,21 @@ const getVehiclesWithPricing = asyncHandler(async (req, res) => {
         throw new ApiErrors(404, "No vehicles found for this organization and service");
 
     // Attach the same pricing plan to all matching vehicles
-    const mergedResults = vehicles.map(vehicle => ({
-        ...vehicle.toJSON(),
+    const mergedResults = vehicles.map(vehicle => {
+    const v = vehicle.toJSON();
+
+    const totalPrice =
+        Number(pricingPlan.baseRate) +
+        (Number(distance) * Number(pricingPlan.pricePerKm)) +
+        Number(pricingPlan.surgeCharges || 0);
+
+    return {
+        ...v,
         pricingPlan,
-    }));
+        totalPrice: Number(totalPrice.toFixed(2))  // 2 decimal precision
+    };
+});
+
 
     // Return response
     return res.status(200).json({
@@ -368,6 +382,50 @@ const getVehiclesWithPricing = asyncHandler(async (req, res) => {
 
 
 
+const getVehiclesOffers = asyncHandler(async (req, res) => {
+    const { vehicleId } = req.params;
+
+    // Authentication check
+    if (!req.user) {
+        throw new ApiErrors(401, "Unauthorized Access");
+    }
+
+    // Only normal user can access
+    if (req.user.role !== "user") {
+        throw new ApiErrors(403, "Only users can access this data");
+    }
+
+    // Check if vehicle exists
+    const vehicle = await Vehicles.findOne({
+        where: { vehicleId }
+    });
+
+    if (!vehicle) {
+        throw new ApiErrors(404, "Vehicle not found");
+    }
+
+    // Fetch all offers of this vehicle
+    const offers = await VehiclesOffer.findAll({
+        where: {
+            vehicleId: vehicleId,
+            isActive: true   // remove this line if you want ALL offers
+        },
+        order: [["createdAt", "DESC"]],
+    });
+
+    return res.status(200).json({
+        success: true,
+        message: "Vehicle offers fetched successfully",
+        data: offers,
+    });
+});
+
+
+
+
+
+
+
 
 export {
     registerVehicles,
@@ -375,5 +433,6 @@ export {
     updateVehicleData, 
     deleteVehicle, 
     countVehicle, 
-    getVehiclesWithPricing
+    getVehiclesWithPricing,
+    getVehiclesOffers
 }
