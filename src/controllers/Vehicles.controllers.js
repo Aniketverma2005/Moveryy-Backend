@@ -141,6 +141,7 @@ const fetchVehicles = asyncHandler(async (req, res) => {
       attributes: [
         "vehicleId",
         "vehicleName",
+        "driverId",
         "registrationNumber",
         "manufacturer",
         "vehicleType",

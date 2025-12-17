@@ -1,4 +1,4 @@
-import sequelize from "../database/db.js";
+import sequelize from "../../database/db.js";
 import { DataTypes } from "sequelize";
 import bcrypt from "bcrypt"
 
@@ -15,6 +15,15 @@ const employee = sequelize.define("employees", {
             model: 'organizations',
             key: 'organizationId'
         },
+    },
+    vehicleId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+        model: "vehicles",
+        key: "vehicleId"
+        },
+        onDelete: "SET NULL"
     },
     employeeName: {
         type: DataTypes.STRING,

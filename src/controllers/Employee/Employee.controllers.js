@@ -1,11 +1,12 @@
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { ApiErrors } from "../utils/ApiErrors.js";
-import Employee from "../models/Employee.js"
-import { Validation } from "../utils/Validation.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import { ApiErrors } from "../../utils/ApiErrors.js";
+import Employee from "../../models/Employee/Employee.js"
+import { Validation } from "../../utils/Validation.js";
 import bcrypt from "bcrypt"
-import { generateEmployeeToken } from "../utils/GenerateTokenWithOrg.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { or } from "sequelize";
+import { generateEmployeeToken } from "../../utils/GenerateTokenWithOrg.js";
+import { ApiResponse } from "../../utils/ApiResponse.js";
+import { Op } from "sequelize";
+
 
 const createEmployee = asyncHandler(async(req, res) => {
     const{
@@ -13,6 +14,7 @@ const createEmployee = asyncHandler(async(req, res) => {
         email,
         password,
         phone, 
+        vehicleId,
         role,
         gender,
         aadharNumber,
@@ -50,9 +52,17 @@ const createEmployee = asyncHandler(async(req, res) => {
         throw new ApiErrors(400, "Enter valid Phone Number")
     }
 
-    if(Validation.isEmpty(role) || !["transport"].includes(role)) {
-        throw new ApiErrors(400, "Role is required and must be transport")
+    if(Validation.isEmpty(role) || !["driver", "crew"].includes(role)) {
+        throw new ApiErrors(400, "Role is required and must be driver or crew")
     }
+    if (req.body.role === "driver" && !req.body.vehicleId) {
+        return res.status(400).json({ message: "Driver must have a vehicle assigned" });
+    }
+
+    if (req.body.role !== "driver" && req.body.vehicleId) {
+        return res.status(400).json({ message: "Only drivers can be assigned a vehicle" });
+    }
+
 
     if(Validation.isEmpty(gender) || !["male", "female", "others"].includes(gender)) {
         throw new ApiErrors(400, "Gender is required and must be of: male, female, others")
@@ -69,6 +79,25 @@ const createEmployee = asyncHandler(async(req, res) => {
     if(Validation.isEmpty(address)) {
         throw new ApiErrors(400, "Address is required")
     }
+
+    try {
+        const vehicle = await Employee.findOne({
+            where: {
+            [Op.or]: [
+                { vehicleId: vehicleId },
+                { email: email }
+            ]
+            }
+        });
+
+        if (vehicle) {
+                throw new ApiErrors(400, "Vehicle is already assigned to another driver or Email is already registered");
+            }
+        } catch (error) {
+            console.log("Sequelize Error", error);
+            throw error;
+        }
+
 
 
     try {
@@ -100,6 +129,7 @@ const createEmployee = asyncHandler(async(req, res) => {
         email,
         password: hashPassword,
         phone,
+        vehicleId,
         role,
         gender,
         aadharNumber,
@@ -118,6 +148,7 @@ const createEmployee = asyncHandler(async(req, res) => {
             organizationId: newEmployee.organizationId,
             createdBy: newEmployee.createdBy,
             employeeName: newEmployee.employeeName,
+            vehicleId: newEmployee.vehicleId,
             email: newEmployee.email,
             phone: newEmployee.phone,
             role: newEmployee.role,
@@ -214,7 +245,7 @@ const getEmployee = asyncHandler(async(req, res) => {
     // }
 
     const employees = await Employee.findAll({
-        where: {organizationId},
+        where: {organizationId, isActive: true},
         attributes:{exclude:['password']}, 
         order: [['employeeId', 'ASC']]})
 

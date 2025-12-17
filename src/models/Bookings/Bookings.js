@@ -69,9 +69,10 @@ const Bookings = sequelize.define("bookings", {
         onDelete: "SET NULL",
     },
     serviceType: {
-        type: DataTypes.ENUM("Home Shift", "Office Shift", "Vehicle Shift"),
+        type: DataTypes.ENUM("houseshift", "officeshift", "vehicleshift"),
         allowNull: false,
     },
+
     startLocation: {
         type: DataTypes.STRING,
         allowNull: false,

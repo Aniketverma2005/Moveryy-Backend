@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken"
 import { ApiErrors } from "./ApiErrors.js";
 import User from "../models/Users/Users.js";
-import Employee from "../models/Employee.js"
+import Employee from "../models/Employee/Employee.js"
 import dotenv from 'dotenv';
 dotenv.config();
 

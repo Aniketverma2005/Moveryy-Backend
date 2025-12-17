@@ -8,6 +8,8 @@ import vehicleRoutes from "./Vehicles.routes.js";
 import offersRoutes from "./Offers.routes.js";
 import vehicleOffersRoutes from "./VehiclesOffer.routes.js";
 import pricingPlanRoutes from "./PricingPlan.routes.js";
+import bookingRoutes from "./Bookings/Bookings.routes.js";
+import bookingCrew from "./Employee/BookingCrew.routes.js";
 
 const router = express.Router();
 
@@ -19,5 +21,7 @@ router.use("/vehicles", vehicleRoutes);
 router.use("/offers", offersRoutes);
 router.use("/vehiclesOffer", vehicleOffersRoutes);
 router.use("/pricingPlan", pricingPlanRoutes);
+router.use("/bookings", bookingRoutes);
+router.use("/bookingCrew", bookingCrew);
 
 export default router;

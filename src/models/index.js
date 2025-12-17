@@ -2,9 +2,11 @@
 import sequelize from "../database/db.js";
 import Users from "./Users/Users.js";
 import Organizations from "./Organizations.js";
-import Employee  from "../models/Employee.js";
+import Employee  from "./Employee/Employee.js";
 import Vehicles from "../models/Vehicles.js"
 import VehiclesOffer from "../models/VehiclesOffer.js"
+
+import BookingCrew from "./Employee/BookingCrew.js";
 
 // Associations
 Users.hasMany(Organizations, { foreignKey: "userId", as: "organizations" });
@@ -30,6 +32,8 @@ Vehicles.belongsTo(Users, { foreignKey: "updatedBy", as: "updater" });
 Vehicles.hasOne(VehiclesOffer, {foreignKey: "vehicleId", as: "offer",});
 VehiclesOffer.belongsTo(Vehicles, { foreignKey: "vehicleId", as: "vehicle",});
 
+BookingCrew.belongsTo(Employee, { foreignKey: "employeeId" });
+Employee.hasMany(BookingCrew, { foreignKey: "employeeId" });
 
 const initDB = async () => {
   try {
@@ -43,4 +47,4 @@ const initDB = async () => {
   }
 };
 
-export { sequelize, initDB, Users, Organizations, Employee, Vehicles, VehiclesOffer};
+export { sequelize, initDB, Users, Organizations, Employee, Vehicles, VehiclesOffer, BookingCrew};

@@ -2,7 +2,7 @@ import { ApiErrors } from "../utils/ApiErrors.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import User from "../models/Users/Users.js"; 
-import Employee from "../models/Employee.js"
+import Employee from "../models/Employee/Employee.js"
 import Organizations from "../models/Organizations.js";
 
 

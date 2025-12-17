@@ -15,6 +15,16 @@ const vehicles = sequelize.define("vehicles", {
             key: 'organizationId'
         },
     },
+    driverId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: "employees",
+            key: "employeeId"
+        },
+        onDelete: "SET NULL"
+    },
+
     vehicleName: {
         type: DataTypes.STRING,
         allowNull: false,
