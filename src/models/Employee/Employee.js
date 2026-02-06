@@ -106,10 +106,11 @@ const employee = sequelize.define("employees", {
 }, {timestamps: true});
 
 
-employee.beforeCreate(async(employee) => {
-    if(employee.password) {
-        employee.password = await bcrypt.hash(employee.password, 10);
-    }
-})
+
+employee.beforeUpdate(async (employee) => {
+  if (employee.changed("password")) {
+    employee.password = await bcrypt.hash(employee.password.trim(), 10);
+  }
+});
 
 export default employee;

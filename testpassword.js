@@ -1,7 +1,5 @@
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
 
-(async () => {
-  const password = 'JoeRoot@123';
-  const hash = await bcrypt.hash(password, 10);
-  console.log("New hash:", hash);
-})();
+const hash = "$2b$10$0Hxt1Wq5e/6sYsS8QOlEj.Rw.uOKGP83zJiIWsFpQWuZMt9SbIigq";
+
+console.log(await bcrypt.compare("Divyansh@123", hash));

@@ -95,37 +95,33 @@ export const verifyNewGeneratedToken = asyncHandler(async (req, res, next) => {
 
 
 
-export const verifyEmployeeToken = asyncHandler(async(req, res, next) => {
-    try {
-        const token = req.cookies?.accessToken || req.header ("Authorization")?.replace("Bearer ", "")
-        if(!token) {
-            throw new ApiErrors(401, "Unauthorized Request")
-        }
+export const verifyEmployeeToken = asyncHandler(async (req, res, next) => {
+  const token =
+    req.cookies?.employeeAccessToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
 
-        let decodedToken;
-        try {
-            decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-        } catch (error) {
-            throw new ApiErrors(401, "Invalid or Expired access token")
-        }
+  if (!token) {
+    throw new ApiErrors(401, "Unauthorized request");
+  }
 
-        const employee = await Employee.findByPk(decodedToken?.employeeId, {attributes: {exclude: ['password', 'refreshToken']}})
-        if(!employee) {
-            throw new ApiErrors(401, "Invalid Access Token")
-        }
+  let decodedToken;
+  try {
+    decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    throw new ApiErrors(401, "Invalid or expired access token");
+  }
 
-        req.employee = {
-            id: employee.employeeId,
-            email: employee.email,
-            role: employee.role,
-            organizationId: decodedToken.organizationId
-        }
+  const employee = await Employee.findByPk(decodedToken.employeeId);
 
-        if (req.employee.role !== "transport") {
-            throw new ApiErrors(403, "Employees only");
-        }
-        next();
-    } catch (error) {
-        next(error);
-    }
-})
+  if (!employee || !employee.isActive) {
+    throw new ApiErrors(401, "Invalid Access Token");
+  }
+
+  req.employee = {
+    id: employee.employeeId,
+    role: employee.role,
+    organizationId: employee.organizationId
+  };
+
+  next();
+});

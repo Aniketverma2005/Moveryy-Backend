@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { changeStatus, countEmployee, createEmployee, deleteEmployeeById, fetchEmployeeById, getEmployee, loginEmployee, logoutEmployee, updateEmployeeDetails } from "../controllers/Employee/Employee.controllers.js";
-import { verifyEmployeeToken, verifyNewGeneratedToken } from "../middlewares/Auth.middleware.js";
+import { changeStatus, countEmployee, createEmployee, deleteEmployeeById, fetchEmployeeById, getEmployee, getEmployeeBookings, loginEmployee, logoutEmployee, resetEmployeePassword, updateEmployeeDetails } from "../controllers/Employee/Employee.controllers.js";
+import { verifyEmployeeToken, verifyNewGeneratedToken, verifyToken } from "../middlewares/Auth.middleware.js";
 
 const router = Router();
 
@@ -24,5 +24,9 @@ router.route('/status').post(verifyEmployeeToken, changeStatus)
 router.route('/:id').patch(verifyNewGeneratedToken, updateEmployeeDetails)
 
 router.route('').get(verifyNewGeneratedToken, countEmployee)
+
+router.route('/reset-password').post(verifyNewGeneratedToken, resetEmployeePassword)
+
+router.route('/bookings').get(verifyEmployeeToken, getEmployeeBookings)
 
 export default router

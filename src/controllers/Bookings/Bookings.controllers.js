@@ -1,8 +1,4 @@
-import { asyncHandler } from "../../utils/asyncHandler.js";
 import Bookings from "../../models/Bookings/Bookings.js";
-import { ApiErrors } from "../../utils/ApiErrors.js";
-import { Validation } from "../../utils/Validation.js";
-import Organizations from "../../models/Organizations.js";
 import Vehicles from "../../models/Vehicles.js";
 import PricingPlans from "../../models/PricingPlans.js";
 import Offers from "../../models/Offers.js";
@@ -10,12 +6,17 @@ import VehicleOffers from "../../models/VehiclesOffer.js";
 import { Op } from "sequelize"; 
 import Employees from "../../models/Employee/Employee.js";
 import BookingCrew from "../../models/Employee/BookingCrew.js";
+import sequelize from "../../database/db.js";
+import getCrewCount from "../../utils/CrewAssigned.js";
+import { Organizations } from "../../models/index.js";
+
 
 export const createBooking = async (req, res) => {
+  const t = await sequelize.transaction();
+
   try {
     const {
       organizationId,
-      customerId,
       vehicleId,
       offerId,
       vehicleOfferId,
@@ -23,61 +24,114 @@ export const createBooking = async (req, res) => {
       startLocation,
       endLocation,
       distance,
-      tripDate
+      tripDate,
+      capacityValue,
+      capacityUnit
     } = req.body;
 
-    
-    if (!organizationId || !vehicleId || !serviceType ||
-        !startLocation || !endLocation || !distance || !tripDate) {
-      return res.status(400).json({ message: "Missing required fields" });
+    // ---------------- VALIDATION ----------------
+    if (
+      !organizationId ||
+      !vehicleId ||
+      !serviceType ||
+      !startLocation ||
+      !endLocation ||
+      !distance ||
+      !tripDate ||
+      !capacityValue ||
+      !capacityUnit
+    ) {
+      throw new Error("Missing required fields");
+    }
+
+    const organization = await Organizations.findByPk(organizationId, { transaction: t });
+
+    if (!organization) {
+      throw new Error("Organization not found");
+    }
+
+    if (organization.status?.toLowerCase() !== "active") {
+      throw new Error("Organization is inactive");
     }
 
 
-    const vehicle = await Vehicles.findByPk(vehicleId);
-    if (!vehicle) return res.status(404).json({ message: "Vehicle not found" });
 
+
+    // ORGANIZATION FROM TOKEN (NOT BODY)
+    const customerId = req.user.id;
+    if (!organizationId) {
+      throw new Error("Unauthorized organization");
+    }
+
+    // ---------------- FETCH VEHICLE ----------------
+    const vehicle = await Vehicles.findOne({
+      where: {
+        vehicleId,
+        organizationId
+      },
+      transaction: t
+    });
+
+    if (!vehicle) {
+      throw new Error("Vehicle not found for selected organization");
+    }
+
+    
+
+    if (capacityValue > vehicle.capacityValue) {
+      throw new Error("Selected capacity exceeds vehicle capacity");
+    }
+
+    // ---------------- FETCH PRICING PLAN ----------------
     const pricingPlan = await PricingPlans.findOne({
       where: {
         organizationId,
         serviceType: serviceType.toLowerCase(),
-        capacityUnit: vehicle.capacityUnit.toLowerCase(),
-        minCapacity: { [Op.lte]: vehicle.capacityValue },
-        maxCapacity: { [Op.gte]: vehicle.capacityValue }
-      }
+        capacityUnit: capacityUnit.toLowerCase(),
+        minCapacity: { [Op.lte]: capacityValue },
+        maxCapacity: { [Op.gte]: capacityValue }
+      },
+      transaction: t
     });
 
     if (!pricingPlan) {
-      return res.status(404).json({
-        message: "No pricing plan found for this service type or capacity"
-      });
+      throw new Error("No pricing plan found for selected capacity and service");
     }
 
-  
+    // ---------------- PRICE CALCULATION ----------------
     const baseRate = pricingPlan.baseRate;
     const pricePerKm = pricingPlan.pricePerKm;
-    const surgeCharges = pricingPlan.surgeCharges;
+    const surgeCharges = pricingPlan.surgeCharges || 0;
 
     const distanceCost = distance * pricePerKm;
     const surgeChargeCost = distanceCost * surgeCharges;
-
     let totalPrice = baseRate + distanceCost + surgeChargeCost;
 
-    // 4️⃣ Apply offers
+    // ---------------- APPLY OFFERS ----------------
     let discount = 0;
 
     if (offerId) {
-      const offer = await Offers.findByPk(offerId);
-      if (offer) discount += (offer.discountPercent / 100) * totalPrice;
+      const offer = await Offers.findByPk(offerId, { transaction: t });
+      if (offer?.isActive) {
+        discount += offer.discountType === "percentage"
+          ? (offer.discountValue / 100) * totalPrice
+          : offer.discountValue;
+      }
     }
 
     if (vehicleOfferId) {
-      const vOffer = await VehicleOffers.findByPk(vehicleOfferId);
-      if (vOffer) discount += (vOffer.discountPercent / 100) * totalPrice;
+      const vOffer = await VehicleOffers.findByPk(vehicleOfferId, { transaction: t });
+      if (vOffer?.isActive) {
+        discount += vOffer.discountType === "percentage"
+          ? (vOffer.discountValue / 100) * totalPrice
+          : vOffer.discountValue;
+      }
     }
 
+    discount = Math.min(discount, totalPrice);
     const finalPrice = totalPrice - discount;
 
-    // 5️⃣ Create Booking
+    // ---------------- CREATE BOOKING ----------------
     const booking = await Bookings.create({
       organizationId,
       customerId,
@@ -90,6 +144,8 @@ export const createBooking = async (req, res) => {
       endLocation,
       distance,
       tripDate,
+      capacityValue,
+      capacityUnit,
       baseRate,
       distanceCost,
       fuelSurcharge: surgeChargeCost,
@@ -97,106 +153,79 @@ export const createBooking = async (req, res) => {
       discount,
       finalPrice,
       bookingStatus: "pending"
+    }, { transaction: t });
+
+    // ---------------- ASSIGN DRIVER ----------------
+    if (!vehicle.driverId) {
+      throw new Error("No driver assigned to this vehicle");
+    }
+
+    const driver = await Employees.findOne({
+      where: { employeeId: vehicle.driverId, status: "available" },
+      transaction: t
     });
 
-    // ------------------------------------------------------
-    // 6️⃣ ASSIGN DRIVER (from vehicle.driverId)
-    // ------------------------------------------------------
+    if (!driver) throw new Error("Assigned driver is not available");
 
-    const assignedDriverId = vehicle.driverId;
-
-    if (!assignedDriverId) {
-      return res.status(400).json({
-        message: "No driver assigned to this vehicle."
-      });
-    }
-
-    const driver = await Employees.findByPk(assignedDriverId);
-
-    if (!driver || driver.status !== "available") {
-      return res.status(400).json({
-        message: "Assigned driver is not available"
-      });
-    }
-
-    // Save driver in bookingCrew table
     await BookingCrew.create({
       bookingId: booking.bookingId,
-      employeeId: assignedDriverId,
+      employeeId: driver.employeeId,
       role: "driver"
-    });
+    }, { transaction: t });
 
-    // Update driver status
-    await Employees.update(
-      { status: "busy" },
-      { where: { employeeId: assignedDriverId } }
+    await driver.update({ status: "busy" }, { transaction: t });
+
+    // ---------------- ASSIGN CREW ----------------
+    const crewNeeded = getCrewCount(
+      serviceType,
+      capacityValue,
+      capacityUnit
     );
 
-    // ------------------------------------------------------
-    // 7️⃣ ASSIGN CREW MEMBERS
-    // ------------------------------------------------------
-
-    function requiredCrew(cap) {
-      if (cap === 1) return 2;
-      if (cap === 2) return 3;
-      if (cap >= 3) return 4;
-      return 2;
-    }
-
-    const crewNeeded = requiredCrew(vehicle.capacityValue);
 
     const availableCrew = await Employees.findAll({
       where: {
         organizationId,
-        role: "crew",
         status: "available",
         isActive: true,
-        isBlacklisted: false
+        isBlacklisted: false,
+        role: { [Op.ne]: "driver" }
       },
-      limit: crewNeeded
+      limit: crewNeeded,
+      transaction: t
     });
 
     if (availableCrew.length < crewNeeded) {
-      return res.status(400).json({
-        message: "Not enough crew members available"
-      });
+      throw new Error("Not enough crew members available");
     }
 
-    // Assign each crew member
-    for (let crewMember of availableCrew) {
+    for (const crew of availableCrew) {
       await BookingCrew.create({
         bookingId: booking.bookingId,
-        employeeId: crewMember.employeeId,
+        employeeId: crew.employeeId,
         role: "crew"
-      });
+      }, { transaction: t });
 
-      await Employees.update(
-        { status: "busy" },
-        { where: { employeeId: crewMember.employeeId } }
-      );
+      await crew.update({ status: "busy" }, { transaction: t });
     }
 
-    // ------------------------------------------------------
-    // 8️⃣ UPDATE VEHICLE STATUS
-    // ------------------------------------------------------
-    await Vehicles.update(
-      { status: "on-duty" },
-      { where: { vehicleId } }
-    );
+    // ---------------- UPDATE VEHICLE ----------------
+    await vehicle.update({ status: "on-duty" }, { transaction: t });
+
+    await t.commit();
 
     return res.status(201).json({
-      message: "Booking created successfully",
-      booking
+      message: "Booking created successfully with driver and crew assigned",
+      bookingId: booking.bookingId
     });
 
   } catch (error) {
+    await t.rollback();
     console.error("BOOKING ERROR:", error);
-    return res.status(500).json({
-      message: "Internal Server Error",
-      error: error.message
-    });
+    return res.status(400).json({ message: error.message });
   }
 };
+
 
 
 
@@ -284,3 +313,65 @@ export const checkoutPreview = async (req, res) => {
     });
   }
 };
+
+
+export const getOrganizationBookings = async (req, res) => {
+  try {
+    const organizationId = req.user.organizationId;
+
+    if (!organizationId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const bookings = await Bookings.findAll({
+      where: { organizationId },
+
+      order: [["createdAt", "DESC"]],
+
+      include: [
+        {
+          model: Vehicles,
+          attributes: ["vehicleId", "vehicleName", "capacityValue", "capacityUnit", "status"]
+        },
+        {
+          model: PricingPlans,
+          attributes: ["pricingPlanId", "serviceType", "baseRate", "pricePerKm"]
+        },
+        {
+          model: Offers,
+          attributes: ["offerId", "offerName", "discountValue", "discountType"],
+          required: false
+        },
+        {
+          model: VehicleOffers,
+          attributes: ["vehicleOfferId", "offerName", "discountValue", "discountType"],
+          required: false
+        },
+        {
+          model: BookingCrew,
+          include: [
+            {
+              model: Employees,
+              attributes: ["employeeId", "employeeName", "role", "phone"]
+            }
+          ]
+        }
+      ]
+
+    });
+
+    return res.status(200).json({
+      message: "Bookings fetched successfully",
+      total: bookings.length,
+      bookings
+    });
+
+  } catch (error) {
+    console.error("FETCH BOOKINGS ERROR:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message
+    });
+  }
+};
+

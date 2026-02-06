@@ -217,3 +217,163 @@
  *       500:
  *         description: Internal server error
  */
+
+
+/**
+ * @swagger
+ * /api/v1/employee/bookings:
+ *   get:
+ *     summary: Fetch bookings assigned to logged-in employee
+ *     description:
+ *       Fetches all bookings assigned to the authenticated employee (driver or crew)
+ *       using the employee access token. Employees can only see bookings they are
+ *       assigned to.
+ *     tags: [Employee Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bookings fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Bookings fetched successfully
+ *                 total:
+ *                   type: integer
+ *                   example: 1
+ *                 bookings:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       bookingId:
+ *                         type: integer
+ *                         example: 12
+ *                       organizationId:
+ *                         type: integer
+ *                         example: 10
+ *                       customerId:
+ *                         type: integer
+ *                         example: 1
+ *                       vehicleId:
+ *                         type: integer
+ *                         example: 7
+ *                       serviceType:
+ *                         type: string
+ *                         example: houseshift
+ *                       capacityValue:
+ *                         type: integer
+ *                         example: 1
+ *                       capacityUnit:
+ *                         type: string
+ *                         example: bhk
+ *                       startLocation:
+ *                         type: string
+ *                         example: Indore, MP
+ *                       endLocation:
+ *                         type: string
+ *                         example: Bhopal, MP
+ *                       distance:
+ *                         type: number
+ *                         example: 195
+ *                       tripDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2026-01-20T00:00:00.000Z
+ *                       baseRate:
+ *                         type: number
+ *                         example: 1500
+ *                       distanceCost:
+ *                         type: number
+ *                         example: 4875
+ *                       fuelSurcharge:
+ *                         type: number
+ *                         example: 390
+ *                       totalPrice:
+ *                         type: number
+ *                         example: 6765
+ *                       discount:
+ *                         type: number
+ *                         example: 0
+ *                       finalPrice:
+ *                         type: number
+ *                         example: 6765
+ *                       bookingStatus:
+ *                         type: string
+ *                         example: pending
+ *                       vehicle:
+ *                         type: object
+ *                         properties:
+ *                           vehicleId:
+ *                             type: integer
+ *                             example: 7
+ *                           vehicleName:
+ *                             type: string
+ *                             example: Tata Ace
+ *                           capacityValue:
+ *                             type: integer
+ *                             example: 1
+ *                           capacityUnit:
+ *                             type: string
+ *                             example: bhk
+ *                           status:
+ *                             type: string
+ *                             example: on-duty
+ *                       pricingplan:
+ *                         type: object
+ *                         properties:
+ *                           pricingPlanId:
+ *                             type: integer
+ *                             example: 2
+ *                           serviceType:
+ *                             type: string
+ *                             example: houseshift
+ *                           baseRate:
+ *                             type: number
+ *                             example: 1500
+ *                           pricePerKm:
+ *                             type: number
+ *                             example: 25
+ *                       bookingCrews:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             bookingCrewId:
+ *                               type: integer
+ *                               example: 3
+ *                             employeeId:
+ *                               type: integer
+ *                               example: 13
+ *                             role:
+ *                               type: string
+ *                               example: driver
+ *                             status:
+ *                               type: string
+ *                               example: assigned
+ *                             employee:
+ *                               type: object
+ *                               properties:
+ *                                 employeeId:
+ *                                   type: integer
+ *                                   example: 13
+ *                                 employeeName:
+ *                                   type: string
+ *                                   example: Divyanshu Rajawat
+ *                                 role:
+ *                                   type: string
+ *                                   example: driver
+ *                                 phone:
+ *                                   type: string
+ *                                   example: +918773523345
+ *       401:
+ *         description: Unauthorized or invalid employee token
+ *       403:
+ *         description: Access denied (not a driver or crew)
+ *       500:
+ *         description: Internal server error
+ */

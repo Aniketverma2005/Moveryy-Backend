@@ -55,23 +55,35 @@ const Bookings = sequelize.define("bookings", {
         allowNull: true,
         references: {
             model: "offers",
-            key: "id",
+            key: "offerId",
         },
         onDelete: "SET NULL",
     },
+
     vehicleOfferId: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
             model: "vehiclesOffer",
-            key: "id",
+            key: "vehicleOfferId",
         },
         onDelete: "SET NULL",
     },
+
     serviceType: {
         type: DataTypes.ENUM("houseshift", "officeshift", "vehicleshift"),
         allowNull: false,
     },
+    capacityValue: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+
+    capacityUnit: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+
 
     startLocation: {
         type: DataTypes.STRING,

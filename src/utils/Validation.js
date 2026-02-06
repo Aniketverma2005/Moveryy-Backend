@@ -1,5 +1,5 @@
 const isEmpty = (v) => 
-    v === undefined || v ===null || ( typeof v === 'string' && v.trim === '');
+    v === undefined || v === null || ( typeof v === 'string' && v.trim() === '');
 
 const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 const validatePhone = (p) => /^\+[0-9]{7,15}$/.test(p);
