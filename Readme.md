@@ -43,3 +43,21 @@ This backend is designed to work with Android, Web, or any frontend client.
 ---
 
 ## 📁 Project Structure
+
+src/
+├── controllers/
+├── routes/
+├── middleware/
+├── models/
+├── config/
+├── utils/
+└── server.js
+
+
+---
+
+## 🚀 Getting Started
+
+### 1️⃣ Clone the Repository
+
+
