@@ -59,5 +59,80 @@ src/
 ## 🚀 Getting Started
 
 ### 1️⃣ Clone the Repository
+git clone https://github.com/Aniketverma2005/Moveryy-Backend.git
+
+### 2️⃣ Navigate into Project
+cd your-repo-name
+
+### 3️⃣ Install Dependencies
+npm i
+
+### 4️⃣ Create .env File
+
+Create a `.env` file in the root directory and add:
+
+### 5️⃣ Run the Server
+
+Development Mode: npm run dev
+
+Production Mode: npm start
+
+Server will run on: http://localhost:8000
+
+
+---
+
+## 🧪 API Testing
+
+You can test APIs using:
+
+- Postman
+- Thunder Client
+- Swagger (if implemented)
+
+---
+
+## 📦 Environment Variables
+
+| Variable | Description |
+|----------|------------|
+| PORT | Server running port |
+| DATABASE_URL | Database connection string |
+| JWT_SECRET | Secret key for JWT |
+| NODE_ENV | development / production |
+
+---
+
+## 🔄 Future Improvements
+
+- 🐳 Docker Support
+- 📘 Swagger Documentation
+- 🔄 CI/CD Integration
+- 📊 Rate Limiting
+- 🛡 API Validation (Joi / Zod)
+
+---
+
+## 👨‍💻 Author
+
+**Aniket Verma**
+
+Backend Developer | Android Developer  
+
+GitHub: https://github.com/your-username  
+LinkedIn: https://linkedin.com/in/your-profile  
+
+---
+
+## 📜 License
+
+This project is licensed under the MIT License.
+
+---
+
+⭐ If you like this project, don't forget to give it a star!
+
+
+
 
 
