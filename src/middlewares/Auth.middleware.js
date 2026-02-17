@@ -125,3 +125,37 @@ export const verifyEmployeeToken = asyncHandler(async (req, res, next) => {
 
   next();
 });
+
+
+export const verifyIndependentDriverToken = asyncHandler(async (req, res, next) => {
+  const token =
+    req.cookies?.driverAccessToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
+
+  if (!token) {
+    throw new ApiErrors(401, "Unauthorized request");
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    throw new ApiErrors(401, "Invalid or expired access token");
+  }
+
+  const IndependentDriver = (await import("../models/RideHailing/IndependentDriver.js")).default;
+  const driver = await IndependentDriver.findByPk(decodedToken.driverId);
+
+  if (!driver || !driver.isActive) {
+    throw new ApiErrors(401, "Invalid Access Token");
+  }
+
+  req.driver = {
+    id: driver.driverId,
+    email: driver.email,
+    fullName: driver.fullName,
+    status: driver.status
+  };
+
+  next();
+});
