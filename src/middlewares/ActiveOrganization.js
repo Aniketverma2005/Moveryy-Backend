@@ -1,4 +1,4 @@
-import  Organizations  from "../models/Organizations.js";
+import Organizations from "../models/Organizations.js";
 import { ApiErrors } from "../utils/ApiErrors.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 

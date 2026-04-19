@@ -5,7 +5,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "node --no-deprecation server.js",
+    "dev:watch": "nodemon --no-deprecation server.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo"
   },
