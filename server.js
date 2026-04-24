@@ -11,7 +11,9 @@ import { requestLogger, errorLogger } from "./src/middlewares/Logger.middleware.
 
 
 
-dotenv.config();
+// Configure dotenv with explicit path
+dotenv.config({ path: './.env' });
+
 
 const app = express();
 const port = process.env.PORT || 8000;
