@@ -7,6 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./src/swagger/swagger.js";
 import routes from "./src/routes/index.routes.js";
 import cors from "cors";
+import { requestLogger, errorLogger } from "./src/middlewares/Logger.middleware.js";
 
 
 
@@ -23,6 +24,8 @@ app.use(cors({
   credentials: true, // Allow cookies to be sent
 }));
 
+// Add request logging middleware BEFORE routes
+app.use(requestLogger);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -40,5 +43,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1", routes);
+
+// Add error logging middleware AFTER routes
+app.use(errorLogger);
 
 
