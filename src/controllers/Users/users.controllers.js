@@ -62,16 +62,37 @@ const registerUser = asyncHandler (async (req, res) => {
         throw new ApiErrors(400, "Role must be one of: user, admin or transport");
     }
 
-    // Check if user already exists in main users table
-    const existingUser = await User.findOne({where: {email}});
+    // Check if user already exists in main users table (by email or phone)
+    const existingUser = await User.findOne({
+        where: {
+            [Op.or]: [
+                { email },
+                { phone }
+            ]
+        }
+    });
+    
     if(existingUser) {
-        throw new ApiErrors(409, "User with this email already exists");
+        if(existingUser.email === email) {
+            throw new ApiErrors(409, "User with this email already exists");
+        }
+        if(existingUser.phone === phone) {
+            throw new ApiErrors(409, "User with this phone number already exists");
+        }
     }
 
-    // Check if user already exists in pending users table
-    const existingPendingUser = await PendingUser.findOne({where: {email}});
+    // Check if user already exists in pending users table (by email or phone)
+    const existingPendingUser = await PendingUser.findOne({
+        where: {
+            [Op.or]: [
+                { email },
+                { phone }
+            ]
+        }
+    });
+    
     if(existingPendingUser) {
-        // Delete old pending registration
+        // Delete old pending registration (could be same email or phone)
         await existingPendingUser.destroy();
     }
 
@@ -79,36 +100,34 @@ const registerUser = asyncHandler (async (req, res) => {
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 10) * 60 * 1000);
 
-    try {
-        // First, try to send email
-        await sendOTPEmail(email, otp, firstName);
+    // Store in pending users table first
+    const pendingUser = await PendingUser.create({
+        firstName: firstName.toLowerCase(),
+        lastName: lastName.toLowerCase(),
+        email,
+        phone,
+        password,
+        role,
+        emailOTP: otp,
+        emailOTPExpires: otpExpires
+    });
 
-        // If email succeeds, then store in pending users table
-        const pendingUser = await PendingUser.create({
-            firstName: firstName.toLowerCase(),
-            lastName: lastName.toLowerCase(),
-            email,
-            phone,
-            password,
-            role,
-            emailOTP: otp,
-            emailOTPExpires: otpExpires
-        });
+    // Send email asynchronously (don't wait for it)
+    sendOTPEmail(email, otp, firstName).catch(error => {
+        console.error('Failed to send OTP email:', error.message);
+        // Email failed but user is already in pending_users, they can use resend-otp
+    });
 
-        res.status(201).json(
-            new ApiResponse(200, 
-                { 
-                    email,
-                    message: "Registration successful! Please check your email for OTP verification."
-                }, 
-                "OTP sent to your email"
-            )
-        );
-
-    } catch (error) {
-        // If email fails, don't store anything
-        throw new ApiErrors(500, `Failed to send OTP email: ${error.message}`);
-    }
+    // Respond immediately without waiting for email
+    res.status(201).json(
+        new ApiResponse(200, 
+            { 
+                email,
+                message: "Registration successful! Please check your email for OTP verification."
+            }, 
+            "OTP sent to your email"
+        )
+    );
 })
 
 
@@ -485,22 +504,20 @@ const resendEmailOTP = asyncHandler(async (req, res) => {
   const otp = generateOTP();
   const otpExpires = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 10) * 60 * 1000);
 
-  try {
-    // First, try to send email
-    await sendOTPEmail(email, otp, pendingUser.firstName);
+  // Update pending user first
+  pendingUser.emailOTP = otp;
+  pendingUser.emailOTPExpires = otpExpires;
+  await pendingUser.save();
 
-    // If email succeeds, update pending user
-    pendingUser.emailOTP = otp;
-    pendingUser.emailOTPExpires = otpExpires;
-    await pendingUser.save();
+  // Send email asynchronously (don't wait)
+  sendOTPEmail(email, otp, pendingUser.firstName).catch(error => {
+    console.error('Failed to resend OTP email:', error.message);
+  });
 
-    res.status(200).json(
-      new ApiResponse(200, {}, "OTP sent to your email")
-    );
-
-  } catch (error) {
-    throw new ApiErrors(500, `Failed to send OTP email: ${error.message}`);
-  }
+  // Respond immediately
+  res.status(200).json(
+    new ApiResponse(200, {}, "OTP sent to your email")
+  );
 });
 
 
