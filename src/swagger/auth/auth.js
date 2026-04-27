@@ -294,3 +294,115 @@
  *         description: Internal server error
  */
 
+/**
+ * @swagger
+ * /api/v1/users/verify-otp:
+ *   post:
+ *     summary: Verify email OTP
+ *     description: |
+ *       Verifies the OTP sent to user's email during registration.
+ *       Upon successful verification, the user account is created and email is marked as verified.
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: aniket@moveryy.com
+ *               otp:
+ *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 6
+ *                 example: "123456"
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Email verified successfully! You can now login.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: integer
+ *                       example: 1
+ *                     email:
+ *                       type: string
+ *                       example: aniket@moveryy.com
+ *       400:
+ *         description: Invalid or expired OTP
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /api/v1/users/resend-otp:
+ *   post:
+ *     summary: Resend email OTP
+ *     description: |
+ *       Resends the OTP to user's email if the previous OTP expired or was not received.
+ *       Can only be used for pending registrations (users who haven't verified their email yet).
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: aniket@moveryy.com
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: OTP sent to your email
+ *                 data:
+ *                   type: object
+ *                   example: {}
+ *       400:
+ *         description: User already verified or invalid email
+ *       404:
+ *         description: No pending registration found for this email
+ *       500:
+ *         description: Failed to send OTP email
+ */
+
