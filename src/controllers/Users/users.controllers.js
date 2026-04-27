@@ -2,10 +2,14 @@ import {asyncHandler} from "../../utils/asyncHandler.js";
 import { ApiErrors } from "../../utils/ApiErrors.js";  
 import { Validation } from "../../utils/Validation.js";
 import User from "../../models/Users/Users.js";
+import PendingUser from "../../models/PendingUsers.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
 import { generateTokenWithOrg } from "../../utils/GenerateTokenWithOrg.js";
 import jwt from "jsonwebtoken";
 import Organizations from "../../models/Organizations.js";
+import { generateOTP, sendOTPEmail } from "../../utils/OTPService.js";
+import { Op } from "sequelize";
+
 
 
 //Generate JWT token
@@ -30,12 +34,10 @@ const generateAccessToken = async (userId) => {
 
 //Register User
 const registerUser = asyncHandler (async (req, res) => {
-    //get details from user
-    //validation(not empty)
-    //check if user already exists
-
+    console.log('🔥 NEW REGISTRATION CODE IS RUNNING - Using PendingUser table');
     const {firstName, lastName, email, phone, password, role} = req.body
 
+    // Validation
     if(Validation.isEmpty(firstName)) {
         throw new ApiErrors(400, "First name is required");
     }
@@ -60,30 +62,53 @@ const registerUser = asyncHandler (async (req, res) => {
         throw new ApiErrors(400, "Role must be one of: user, admin or transport");
     }
 
+    // Check if user already exists in main users table
     const existingUser = await User.findOne({where: {email}});
     if(existingUser) {
         throw new ApiErrors(409, "User with this email already exists");
     }
 
-    const user = await User.create({
-        firstName: firstName.toLowerCase(),
-        lastName: lastName.toLowerCase(),
-        email,
-        phone,
-        password,
-        role
-    })
-
-    //const createdUser = await User.findById(user.id, {attributes: {exclude: ['password']}});
-    const createdUser = await User.findByPk(user.id, {attributes: {exclude: ['password']}});
-
-    if(!createdUser) {
-        throw new ApiErrors(500, "User registration failed. Please try again");
+    // Check if user already exists in pending users table
+    const existingPendingUser = await PendingUser.findOne({where: {email}});
+    if(existingPendingUser) {
+        // Delete old pending registration
+        await existingPendingUser.destroy();
     }
 
-    res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered successfully")
-    )  
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 10) * 60 * 1000);
+
+    try {
+        // First, try to send email
+        await sendOTPEmail(email, otp, firstName);
+
+        // If email succeeds, then store in pending users table
+        const pendingUser = await PendingUser.create({
+            firstName: firstName.toLowerCase(),
+            lastName: lastName.toLowerCase(),
+            email,
+            phone,
+            password,
+            role,
+            emailOTP: otp,
+            emailOTPExpires: otpExpires
+        });
+
+        res.status(201).json(
+            new ApiResponse(200, 
+                { 
+                    email,
+                    message: "Registration successful! Please check your email for OTP verification."
+                }, 
+                "OTP sent to your email"
+            )
+        );
+
+    } catch (error) {
+        // If email fails, don't store anything
+        throw new ApiErrors(500, `Failed to send OTP email: ${error.message}`);
+    }
 })
 
 
@@ -105,6 +130,12 @@ const loginUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ where: { email } });
     if (!user) {
         throw new ApiErrors(404, "User not found");
+    }
+
+    // --- Check if email is verified ---
+    // Accept both 1 (integer) and true (boolean)
+    if (user.emailVerified !== 1 && user.emailVerified !== true) {
+        throw new ApiErrors(401, "Please verify your email first. Check your inbox for OTP.");
     }
 
     const validPassword = await user.isPasswordCorrect(password);
@@ -370,9 +401,112 @@ const updateUserLastName = asyncHandler(async (req, res) => {
 })
 
 
+// Verify OTP
+const verifyEmailOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (Validation.isEmpty(email) || !Validation.validateEmail(email)) {
+    throw new ApiErrors(400, "Valid email is required");
+  }
+
+  if (Validation.isEmpty(otp) || otp.length !== 6) {
+    throw new ApiErrors(400, "Valid 6-digit OTP is required");
+  }
+
+  // Find pending user with valid OTP
+  const pendingUser = await PendingUser.findOne({ 
+    where: { 
+      email,
+      emailOTP: otp,
+      emailOTPExpires: { [Op.gt]: new Date() }
+    } 
+  });
+
+  if (!pendingUser) {
+    throw new ApiErrors(400, "Invalid or expired OTP");
+  }
+
+  try {
+    // Create user in main users table using raw insert to ensure emailVerified is set
+    const [userId] = await User.sequelize.query(
+      `INSERT INTO users (firstName, lastName, email, phone, password, role, emailVerified, emailOTP, emailOTPExpires, createdAt, updatedAt) 
+       VALUES (?, ?, ?, ?, ?, ?, 1, NULL, NULL, NOW(), NOW())`,
+      {
+        replacements: [
+          pendingUser.firstName,
+          pendingUser.lastName,
+          pendingUser.email,
+          pendingUser.phone,
+          pendingUser.password,
+          pendingUser.role
+        ]
+      }
+    );
+
+    // Delete from pending users table
+    await pendingUser.destroy();
+
+    res.status(200).json(
+      new ApiResponse(200, 
+        { 
+          userId: userId,
+          email: pendingUser.email 
+        }, 
+        "Email verified successfully! You can now login."
+      )
+    );
+
+  } catch (error) {
+    throw new ApiErrors(500, `Failed to create user: ${error.message}`);
+  }
+});
+
+// Resend OTP
+const resendEmailOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (Validation.isEmpty(email) || !Validation.validateEmail(email)) {
+    throw new ApiErrors(400, "Valid email is required");
+  }
+
+  // Check if user already exists in main table
+  const existingUser = await User.findOne({ where: { email } });
+  if (existingUser) {
+    throw new ApiErrors(400, "User already exists and is verified");
+  }
+
+  // Find pending user
+  const pendingUser = await PendingUser.findOne({ where: { email } });
+  if (!pendingUser) {
+    throw new ApiErrors(404, "No pending registration found for this email");
+  }
+
+  // Generate new OTP
+  const otp = generateOTP();
+  const otpExpires = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 10) * 60 * 1000);
+
+  try {
+    // First, try to send email
+    await sendOTPEmail(email, otp, pendingUser.firstName);
+
+    // If email succeeds, update pending user
+    pendingUser.emailOTP = otp;
+    pendingUser.emailOTPExpires = otpExpires;
+    await pendingUser.save();
+
+    res.status(200).json(
+      new ApiResponse(200, {}, "OTP sent to your email")
+    );
+
+  } catch (error) {
+    throw new ApiErrors(500, `Failed to send OTP email: ${error.message}`);
+  }
+});
 
 
 
 
 
-export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateUserFirstName, updateUserLastName};
+
+
+export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateUserFirstName, updateUserLastName, verifyEmailOTP, resendEmailOTP};

@@ -5,8 +5,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "node --no-deprecation server.js",
+    "start": "nodemon server.js",
+    "dev": "nodemon server.js",
     "dev:watch": "nodemon --no-deprecation server.js",
+    "prod": "node server.js",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo"
   },
@@ -29,6 +31,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.0",
+    "nodemailer": "^8.0.6",
     "sequelize": "^6.37.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"

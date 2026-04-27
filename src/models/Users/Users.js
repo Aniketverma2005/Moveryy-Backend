@@ -46,7 +46,21 @@ const userSchema = sequelize.define("users", {
     },
     refreshToken: {
         type: DataTypes.STRING,
+    },
+    emailVerified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false
+    },
+    emailOTP: {
+        type: DataTypes.STRING(6),
+        allowNull: true
+    },
+    emailOTPExpires: {
+        type: DataTypes.DATE,
+        allowNull: true
     }
+
 
 }, {
     timestamps: true,

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser, updateUserFirstName, updateUserLastName } from "../../controllers/Users/users.controllers.js";
+import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser, updateUserFirstName, updateUserLastName, verifyEmailOTP, resendEmailOTP } from "../../controllers/Users/users.controllers.js";
 import { loginUser } from "../../controllers/Users/users.controllers.js";
 import { logoutUser } from "../../controllers/Users/users.controllers.js";
 import { verifyToken } from "../../middlewares/Auth.middleware.js";
@@ -18,8 +18,13 @@ router.route('/user').get(verifyToken, getCurrentUser)
 
 router.route('/updatepassword').patch(verifyToken, changeCurrentPassword)
 
-router.route('/updatelastname').patch(updateUserFirstName)
+router.route('/updatefirstname').patch(verifyToken, updateUserFirstName)
 
-router.route('/updatelastname').patch(updateUserLastName)
+router.route('/updatelastname').patch(verifyToken, updateUserLastName)
+
+router.post("/verify-otp", verifyEmailOTP);
+
+router.post("/resend-otp", resendEmailOTP);
+
 
 export default router;
