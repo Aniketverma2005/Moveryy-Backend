@@ -232,7 +232,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
     // --- Remove sensitive data ---
     const loggedInUser = await User.findByPk(user.id, {
-        attributes: { exclude: ["password", "refreshToken"] },
+        attributes: { exclude: ["password", "refreshToken", "emailOTP", "emailOTPExpires"] },
     });
 
     const options = {
@@ -269,6 +269,200 @@ const loginUser = asyncHandler(async (req, res) => {
             )
         );
 });
+
+
+
+//Login via OTP
+
+// Send OTP for Login (Passwordless)
+export const sendLoginOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  // Validate email
+  if (!email) {
+    throw new ApiErrors(400, 'Email is required');
+  }
+
+  // Check if user exists
+  const user = await User.findOne({ where: { email } });
+
+  if (!user) {
+    throw new ApiErrors(404, 'User not found. Please sign up first.');
+  }
+
+  // Check if email is verified
+  if (user.emailVerified !== 1 && user.emailVerified !== true) {
+    throw new ApiErrors(400, 'Email not verified. Please verify your email first.');
+  }
+
+  // Generate OTP
+  const otp = generateOTP();
+  const otpExpiry = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 10) * 60 * 1000);
+
+  // Save OTP to database
+  await user.update({
+    emailOTP: otp,
+    emailOTPExpires: otpExpiry
+  });
+
+  // Send OTP email (async - don't wait)
+  sendOTPEmail(email, otp, user.firstName).catch(err => {
+    console.error('Failed to send login OTP email:', err);
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, { email }, 'Login OTP sent to your email')
+  );
+});
+
+
+//Verify Login OTP
+// Verify OTP and Login (Passwordless)
+export const verifyLoginOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  // Validate inputs
+  if (!email || !otp) {
+    throw new ApiErrors(400, 'Email and OTP are required');
+  }
+
+  // Find user
+  const user = await User.findOne({ where: { email } });
+
+  if (!user) {
+    throw new ApiErrors(404, 'User not found');
+  }
+
+  // Check if OTP exists
+  if (!user.emailOTP) {
+    throw new ApiErrors(400, 'No OTP found. Please request a new OTP.');
+  }
+
+  // Check if OTP is expired
+  if (new Date() > new Date(user.emailOTPExpires)) {
+    throw new ApiErrors(400, 'OTP has expired. Please request a new OTP.');
+  }
+
+  // Verify OTP
+  if (user.emailOTP !== otp) {
+    throw new ApiErrors(400, 'Invalid OTP');
+  }
+
+  // Clear OTP from database
+  await user.update({
+    emailOTP: null,
+    emailOTPExpires: null
+  });
+
+  // --- Default variables ---
+  let accessToken = null;
+  let refreshToken = null;
+  let activeOrganization = null;
+  let totalOrganization = null;
+  let organizations = [];
+
+  // --- Handle admin organization logic ---
+  if (user.role === "admin") {
+    organizations = await Organizations.findAll({ where: { userId: user.id } });
+    const orgCount = organizations.length;
+
+    if (orgCount === 0) {
+      // --- Case: Admin has no organization ---
+      totalOrganization = "NO_ORG";
+
+      // Generate temporary token (no org context)
+      const tokens = await generateAccessToken(user.id);
+      accessToken = tokens.accessToken;
+      refreshToken = tokens.refreshToken;
+    } 
+    else if (orgCount === 1) {
+      // --- Case: Admin has exactly one organization ---
+      totalOrganization = "SINGLE_ORG";
+      activeOrganization = organizations[0];
+
+      // Ensure organization is active
+      if (activeOrganization.status !== "active") {
+        activeOrganization.status = "active";
+        await activeOrganization.save();
+      }
+
+      // Generate token with org context
+      const tokens = await generateTokenWithOrg(
+        user.id,
+        activeOrganization.organizationId
+      );
+      accessToken = tokens.accessToken;
+      refreshToken = tokens.refreshToken;
+    } 
+    else {
+      // --- Case: Admin has multiple organizations ---
+      totalOrganization = "MULTI_ORG";
+
+      // Deactivate all orgs (admin must select one in UI)
+      await Organizations.update(
+        { status: "inactive" },
+        { where: { userId: user.id } }
+      );
+
+      // Generate token (no active org context yet)
+      const tokens = await generateAccessToken(user.id);
+      accessToken = tokens.accessToken;
+      refreshToken = tokens.refreshToken;
+    }
+  } 
+  else {
+    // --- Normal user login ---
+    const tokens = await generateAccessToken(user.id);
+    accessToken = tokens.accessToken;
+    refreshToken = tokens.refreshToken;
+    console.log('Generated tokens for user:', { accessToken, refreshToken }); // Debug log
+  }
+
+  // --- Safety check ---
+  if (!accessToken) {
+    throw new ApiErrors(500, "Could not generate access token. Please try again");
+  }
+
+  // --- Remove sensitive data ---
+  const loggedInUser = await User.findByPk(user.id, {
+    attributes: { exclude: ["password", "refreshToken", "emailOTP", "emailOTPExpires"] },
+  });
+
+  const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+  };
+
+  // --- Determine if admin needs to create org ---
+  const needsOrganizationSetup = totalOrganization === "NO_ORG";
+
+  // --- Final response ---
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          activeOrganization: activeOrganization
+            ? {
+                organizationId: activeOrganization.organizationId,
+                name: activeOrganization.organizationName,
+                status: activeOrganization.status,
+              }
+            : null,
+          organizationStatus: totalOrganization, // NO_ORG, SINGLE_ORG, MULTI_ORG
+          needsOrganizationSetup,               // true if admin has no org
+          accessToken,
+          refreshToken,
+        },
+        "Login successful"
+      )
+    );
+});
+
 
 
 
