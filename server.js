@@ -24,7 +24,7 @@ app.use(cookieParser());
 app.use(cors({
   origin: "http://localhost:5173", // Adjust as needed for your frontend
   credentials: true, // Allow cookies to be sent
-C}));
+}));
 
 // Add request logging middleware BEFORE routes
 app.use(requestLogger);
