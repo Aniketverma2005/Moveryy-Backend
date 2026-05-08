@@ -1,4 +1,4 @@
-import {asyncHandler} from "../../utils/asyncHandler.js";
+﻿import {asyncHandler} from "../../utils/asyncHandler.js";
 import { ApiErrors } from "../../utils/ApiErrors.js";  
 import { Validation } from "../../utils/Validation.js";
 import User from "../../models/Users/Users.js";
@@ -34,7 +34,7 @@ const generateAccessToken = async (userId) => {
 
 //Register User
 const registerUser = asyncHandler (async (req, res) => {
-    console.log('🔥 NEW REGISTRATION CODE IS RUNNING - Using PendingUser table');
+    console.log('ðŸ”¥ NEW REGISTRATION CODE IS RUNNING - Using PendingUser table');
     const {firstName, lastName, email, phone, password, role} = req.body
 
     // Validation
@@ -526,4 +526,97 @@ const resendEmailOTP = asyncHandler(async (req, res) => {
 
 
 
-export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateUserFirstName, updateUserLastName, verifyEmailOTP, resendEmailOTP};
+
+// Send Login OTP — for already-registered & verified users
+const sendLoginOTP = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (Validation.isEmpty(email) || !Validation.validateEmail(email)) {
+    throw new ApiErrors(400, "Valid email is required");
+  }
+
+  // Find verified user
+  const user = await User.findOne({ where: { email } });
+  if (!user) {
+    throw new ApiErrors(404, "No account found with this email");
+  }
+
+  // Generate OTP and store on user record
+  const otp = generateOTP();
+  const otpExpires = new Date(Date.now() + (process.env.OTP_EXPIRY_MINUTES || 10) * 60 * 1000);
+
+  user.emailOTP = otp;
+  user.emailOTPExpires = otpExpires;
+  await user.save({ validateBeforeSave: false });
+
+  // Send OTP email
+  sendOTPEmail(email, otp, user.firstName).catch(error => {
+    console.error('Failed to send login OTP email:', error.message);
+  });
+
+  res.status(200).json(
+    new ApiResponse(200, {}, "OTP sent to your email")
+  );
+});
+
+// Verify Login OTP — for already-verified users logging in via OTP
+const verifyLoginOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (Validation.isEmpty(email) || !Validation.validateEmail(email)) {
+    throw new ApiErrors(400, "Valid email is required");
+  }
+
+  if (Validation.isEmpty(otp) || otp.length !== 6) {
+    throw new ApiErrors(400, "Valid 6-digit OTP is required");
+  }
+
+  // Find verified user with matching OTP
+  const user = await User.findOne({
+    where: {
+      email,
+      emailOTP: otp,
+      emailOTPExpires: { [Op.gt]: new Date() }
+    }
+  });
+
+  if (!user) {
+    throw new ApiErrors(400, "Invalid or expired OTP");
+  }
+
+  // Clear OTP after use
+  user.emailOTP = null;
+  user.emailOTPExpires = null;
+  await user.save({ validateBeforeSave: false });
+
+  // Generate tokens
+  const { accessToken, refreshToken } = await generateAccessToken(user.id);
+
+  const options = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  };
+
+  res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(200,
+        {
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+          },
+          accessToken,
+          refreshToken
+        },
+        "Login successful"
+      )
+    );
+});
+export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateUserFirstName, updateUserLastName, verifyEmailOTP, resendEmailOTP, sendLoginOTP, verifyLoginOTP};
+

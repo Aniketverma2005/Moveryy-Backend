@@ -1,5 +1,5 @@
-import { Router } from "express";
-import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser, updateUserFirstName, updateUserLastName, verifyEmailOTP, resendEmailOTP } from "../../controllers/Users/users.controllers.js";
+﻿import { Router } from "express";
+import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser, updateUserFirstName, updateUserLastName, verifyEmailOTP, resendEmailOTP, sendLoginOTP, verifyLoginOTP } from "../../controllers/Users/users.controllers.js";
 import { loginUser } from "../../controllers/Users/users.controllers.js";
 import { logoutUser } from "../../controllers/Users/users.controllers.js";
 import { verifyToken } from "../../middlewares/Auth.middleware.js";
@@ -27,4 +27,9 @@ router.post("/verify-otp", verifyEmailOTP);
 router.post("/resend-otp", resendEmailOTP);
 
 
+router.post('/login/send-otp', sendLoginOTP);
+
+router.post('/login/verify-otp', verifyLoginOTP);
+
 export default router;
+
