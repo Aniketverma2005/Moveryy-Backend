@@ -33,10 +33,12 @@ const userSchema = sequelize.define("users", {
     },
     password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true, // Allow null for Google users
         validate: {
-            len: [8, 255],
-            notNull: { msg: "Password is required" }
+            len: {
+                args: [8, 255],
+                msg: "Password must be between 8 and 255 characters"
+            }
         }
     },
     role: {
@@ -59,7 +61,22 @@ const userSchema = sequelize.define("users", {
     emailOTPExpires: {
         type: DataTypes.DATE,
         allowNull: true
-    }
+    },
+    googleId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true
+    },
+    authProvider: {
+        type: DataTypes.ENUM('local', 'google'),
+        defaultValue: 'local',
+        allowNull: false
+    },
+    profilePicture: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+
 
 
 }, {

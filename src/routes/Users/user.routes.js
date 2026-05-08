@@ -3,10 +3,19 @@ import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser
 import { loginUser } from "../../controllers/Users/users.controllers.js";
 import { logoutUser } from "../../controllers/Users/users.controllers.js";
 import { verifyToken } from "../../middlewares/Auth.middleware.js";
+import { googleSignup } from '../../controllers/GoogleAuth/GoogleAuth.controllers.js';
+import { sendLoginOTP, verifyLoginOTP } from '../../controllers/Users/users.controllers.js';
+
 
 const router = Router();
 
 router.route('/signup').post(registerUser)
+
+router.route('/google/signup').post(googleSignup)
+
+router.post('/login/send-otp', sendLoginOTP);
+
+router.post('/login/verify-otp', verifyLoginOTP);
 
 router.route('/login').post(loginUser)
 
