@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -8,6 +7,7 @@ import { swaggerSpec } from "./src/swagger/swagger.js";
 import routes from "./src/routes/index.routes.js";
 import cors from "cors";
 import { requestLogger, errorLogger } from "./src/middlewares/Logger.middleware.js";
+import fileUpload from "express-fileupload";
 
 
 
@@ -18,8 +18,17 @@ dotenv.config({ path: './.env' });
 const app = express();
 const port = process.env.PORT || 8000;
 
+app.use(fileUpload({
+  useTempFiles: false,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  parseNestedFormData: true
+}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Serve static files (uploaded images like logos, DL photos)
+app.use('/uploads', express.static('uploads'));
 
 app.use(cors({
   origin: "http://localhost:5173", // Adjust as needed for your frontend

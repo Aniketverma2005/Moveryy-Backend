@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { 
-  registerDriver, 
-  loginDriver 
+  sendDriverOTP,
+  verifyDriverOTP
 } from "../../controllers/RideHailing/IndependentDriver.controllers.js";
 
 const router = Router();
 
-// Public routes
-router.route('/register').post(registerDriver);
-router.route('/login').post(loginDriver);
+// OTP-based auth
+router.post('/send-otp', sendDriverOTP);
+router.post('/verify-otp', verifyDriverOTP);
 
 export default router;

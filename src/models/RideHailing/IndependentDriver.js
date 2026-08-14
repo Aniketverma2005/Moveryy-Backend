@@ -10,7 +10,7 @@ const IndependentDriver = sequelize.define("independent_drivers", {
   },
   fullName: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   email: {
     type: DataTypes.STRING,
@@ -19,11 +19,11 @@ const IndependentDriver = sequelize.define("independent_drivers", {
   },
   password: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // not needed for OTP login
   },
   phone: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
     unique: true,
   },
   dateOfBirth: {
@@ -32,46 +32,60 @@ const IndependentDriver = sequelize.define("independent_drivers", {
   },
   gender: {
     type: DataTypes.ENUM('male', 'female', 'others'),
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   address: {
     type: DataTypes.TEXT,
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   city: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   state: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   pincode: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   licenseNumber: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
     unique: true,
   },
   licenseExpiry: {
     type: DataTypes.DATEONLY,
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   licenseType: {
     type: DataTypes.ENUM('two_wheeler', 'four_wheeler', 'commercial'),
-    allowNull: false,
+    allowNull: true,   // filled in later
   },
   aadharNumber: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
     unique: true,
   },
   panNumber: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,   // filled in later
     unique: true,
+  },
+  // OTP fields for email-based login
+  emailOTP: {
+    type: DataTypes.STRING(6),
+    allowNull: true,
+  },
+  emailOTPExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  emailVerified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
   },
   bankAccountNumber: {
     type: DataTypes.STRING,
@@ -86,6 +100,10 @@ const IndependentDriver = sequelize.define("independent_drivers", {
     allowNull: true,
   },
   profilePhoto: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  dlPhotoPath: {
     type: DataTypes.STRING,
     allowNull: true,
   },

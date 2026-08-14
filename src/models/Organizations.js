@@ -32,13 +32,21 @@ const organizationSchema = sequelize.define("organizations", {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    gstNumber: {
+        type: DataTypes.STRING(15),
+        allowNull: true,
+    },
+    website: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     domain:{
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
     subdomain: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
     logo: {
         type: DataTypes.STRING,

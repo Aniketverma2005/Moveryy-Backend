@@ -12,6 +12,7 @@ import bookingRoutes from "./Bookings/Bookings.routes.js";
 import bookingCrew from "./Employee/BookingCrew.routes.js";
 import independentDriverRoutes from "./RideHailing/IndependentDriver.routes.js";
 import rideVehicleRoutes from "./RideHailing/RideVehicle.routes.js";
+import ocrRoutes from "./RideHailing/OCR.routes.js";
 
 const router = express.Router();
 
@@ -27,5 +28,6 @@ router.use("/bookings", bookingRoutes);
 router.use("/bookingCrew", bookingCrew);
 router.use("/drivers", independentDriverRoutes);
 router.use("/drivers/vehicle", rideVehicleRoutes);
+router.use("/ocr", ocrRoutes);
 
 export default router;

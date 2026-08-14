@@ -6,7 +6,28 @@ import { Organizations, Vehicles } from "../models/index.js";
 import Users from "../models/Users/Users.js";
 import { Client } from "@googlemaps/google-maps-services-js";
 import Offers from "../models/Offers.js";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 
+// Ensure logos directory exists
+const logosDir = 'uploads/logos';
+if (!fs.existsSync(logosDir)) {
+  fs.mkdirSync(logosDir, { recursive: true });
+}
+
+// Multer storage for logos - use memory storage to avoid stream issues
+const logoStorage = multer.memoryStorage();
+
+export const logoUpload = multer({
+  storage: logoStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (allowed.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only JPEG, PNG, WebP images allowed'));
+  }
+});
 
 const googleClient = new Client({});
 
@@ -22,19 +43,29 @@ const createOrganization = asyncHandler(async (req, res) => {
         throw new ApiErrors(403, "Only admin users can create organizations");
     }
 
-    const { organizationName, organizationType, businessName, about, domain, subdomain, logo, phone, email, country, state, city, pincode, addressLine1, addressLine2} = req.body;
+    console.log('=== CREATE ORG DEBUG ===');
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('req.body:', JSON.stringify(req.body));
+    console.log('req.files keys:', req.files ? Object.keys(req.files) : 'no files');
+
+    const { organizationName, organizationType, businessName, about, gstNumber, website, logo, phone, email, country, state, city, pincode, addressLine1, addressLine2} = req.body;
+    console.log('pincode value:', pincode, '| type:', typeof pincode);
+
+    // Handle logo file - works with both multipart/form-data and express-fileupload
+    let logoPath = logo || null;
+    const logoFile = req.files?.logo || req.files?.Logo;
+    if (logoFile) {
+      const ext = path.extname(logoFile.name) || '.jpg';
+      const filename = `org_${req.user.id}_${Date.now()}${ext}`;
+      logoPath = path.join(logosDir, filename);
+      await logoFile.mv(logoPath);
+    }
 
     if(Validation.isEmpty(organizationName)) {
         throw new ApiErrors(400, "Organization name is required");
     }
     if(Validation.isEmpty(organizationType)) {
         throw new ApiErrors(400, "Organization type is required");
-    }
-    if(Validation.isEmpty(domain) || !Validation.validateDomain(domain)) {
-        throw new ApiErrors(400, "Domain is required");
-    }
-    if(Validation.isEmpty(subdomain) || !Validation.validateSubdomain(subdomain)) {
-        throw new ApiErrors(400, "Subdomain is required");
     }
     if(Validation.isEmpty(phone) || !Validation.validatePhone(phone)) {
         throw new ApiErrors(400, "A valid phone number is required");
@@ -51,8 +82,8 @@ const createOrganization = asyncHandler(async (req, res) => {
     if(Validation.isEmpty(city)) {
         throw new ApiErrors(400, "City is required");
     }
-    if(Validation.isEmpty(pincode) || !Validation.validatePincode(pincode)) {
-        throw new ApiErrors(400, "A valid pincode is required");
+    if(Validation.isEmpty(String(pincode ?? ''))) {
+        throw new ApiErrors(400, "Pincode is required");
     }
     if(Validation.isEmpty(addressLine1)) {
         throw new ApiErrors(400, "Address  is required");
@@ -85,14 +116,6 @@ const createOrganization = asyncHandler(async (req, res) => {
     }
 
 
-    const existingOrg = await Organizations.findOne({ where: { domain } });
-    if (existingOrg) throw new ApiErrors(400, "Organization with this domain already exists");
-
-    const existingSubdomain = await Organizations.findOne({ where: { subdomain } });
-    if (existingSubdomain) {
-        throw new ApiErrors(400, "Organization with this subdomain already exists");
-    }
-
     const existingEmail = await Organizations.findOne({ where: { email } });
     if (existingEmail) {
         throw new ApiErrors(400, "Organization with this email already exists");
@@ -108,9 +131,9 @@ const createOrganization = asyncHandler(async (req, res) => {
         organizationType: organizationType.toLowerCase(),
         businessName: businessName.toLowerCase(),
         about: about ? about.toLowerCase() : null,
-        domain: domain.toLowerCase(),
-        subdomain: subdomain.toLowerCase(),
-        logo: logo || null,
+        gstNumber: gstNumber ? gstNumber.toUpperCase() : null,
+        website: website ? website.toLowerCase() : null,
+        logo: logoPath,
         phone: phone,
         email: email.toLowerCase(),
         country: country.toLowerCase(),
@@ -200,8 +223,55 @@ const organizationStatus = asyncHandler(async (req, res) => {
 });
 
 
-const updateOrganization = asyncHandler(async (req, res) => {
+const uploadOrganizationLogo = asyncHandler(async (req, res) => {
+    const { organizationId } = req.params; // from URL
 
+    if (!req.user) {
+        throw new ApiErrors(401, "Unauthorized Request");
+    }
+
+    if (!organizationId) {
+        throw new ApiErrors(400, "Organization ID is required");
+    }
+
+    // Use express-fileupload (req.files) - same as OCR endpoints
+    const logoFile = req.files?.logo || req.files?.Logo;
+    if (!req.files || !logoFile) {
+        throw new ApiErrors(400, "Please upload a logo image");
+    }
+
+    // Verify org belongs to this user
+    const organization = await Organizations.findOne({ 
+        where: { organizationId, userId: req.user.id } 
+    });
+    if (!organization) {
+        throw new ApiErrors(404, "Organization not found or you don't have permission");
+    }
+
+    // Delete old logo if exists
+    if (organization.logo && fs.existsSync(organization.logo)) {
+        fs.unlinkSync(organization.logo);
+    }
+
+    // Save logo file to disk
+    const ext = path.extname(logoFile.name) || '.jpg';
+    const filename = `org_${organizationId}_${Date.now()}${ext}`;
+    const logoPath = path.join(logosDir, filename);
+    await logoFile.mv(logoPath);
+
+    await organization.update({ logo: logoPath });
+
+    return res.status(200).json({
+        message: "Logo uploaded successfully",
+        data: {
+            organizationId: organization.organizationId,
+            logo: logoPath,
+            logoUrl: `${req.protocol}://${req.get('host')}/${logoPath.replace(/\\/g, '/')}`
+        }
+    });
+});
+
+const updateOrganization = asyncHandler(async (req, res) => {
     const { organizationId } = req.user;
 
     if(!req.user) {
@@ -212,6 +282,19 @@ const updateOrganization = asyncHandler(async (req, res) => {
 
     if (!organization) {
         throw new ApiErrors(404, "Organization not found or inactive");
+    }
+
+    // Handle logo file upload if provided
+    if (req.file) {
+        // Delete old logo if exists
+        if (organization.logo && fs.existsSync(organization.logo)) {
+            fs.unlinkSync(organization.logo);
+        }
+        const ext = path.extname(req.file.originalname) || '.jpg';
+        const filename = `org_${req.user.id}_${Date.now()}${ext}`;
+        const logoPath = path.join(logosDir, filename);
+        fs.writeFileSync(logoPath, req.file.buffer);
+        req.body.logo = logoPath;
     }
 
     // Now safe to call update
@@ -330,6 +413,49 @@ const fetchOrganizationById = asyncHandler(async (req, res) => {
 
 
 
+const fetchOrganizationLogo = asyncHandler(async (req, res) => {
+    const { organizationId } = req.params;
+
+    if (!req.user) {
+        throw new ApiErrors(401, "Unauthorized Access");
+    }
+
+    const organization = await Organizations.findByPk(organizationId, {
+        attributes: ['organizationId', 'organizationName', 'logo']
+    });
+
+    if (!organization) {
+        throw new ApiErrors(404, "Organization not found");
+    }
+
+    if (!organization.logo) {
+        throw new ApiErrors(404, "This organization has no logo");
+    }
+
+    const absolutePath = path.resolve(organization.logo);
+
+    if (!fs.existsSync(absolutePath)) {
+        throw new ApiErrors(404, "Logo file not found on server");
+    }
+
+    const logoUrl = `${req.protocol}://${req.get('host')}/${organization.logo.replace(/\\/g, '/')}`;
+
+    return res.status(200).json({
+        message: "Logo fetched successfully",
+        data: {
+            organizationId: organization.organizationId,
+            organizationName: organization.organizationName,
+            logo: organization.logo,
+            logoUrl
+        }
+    });
+});
+
+
+
+
+
+
 export {
     createOrganization,
     fetchOrganizations,
@@ -337,7 +463,7 @@ export {
     updateOrganization,
     deleteOrganization,
     fetchOrganizationByPin, 
-    fetchOrganizationById
+    fetchOrganizationById,
+    uploadOrganizationLogo,
+    fetchOrganizationLogo
 }
-
-
