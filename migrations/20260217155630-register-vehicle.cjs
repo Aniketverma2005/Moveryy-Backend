@@ -43,7 +43,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
       },
-      
+
       // RC Details
       rcNumber: {
         type: Sequelize.STRING,
@@ -58,7 +58,7 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
-      
+
       // Insurance Details
       insuranceNumber: {
         type: Sequelize.STRING,
@@ -76,7 +76,7 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
-      
+
       // Fitness & Permit (for commercial vehicles)
       fitnessExpiryDate: {
         type: Sequelize.DATEONLY,
@@ -98,7 +98,7 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
-      
+
       // Vehicle Specifications
       seatingCapacity: {
         type: Sequelize.INTEGER,
@@ -109,7 +109,7 @@ module.exports = {
         type: Sequelize.ENUM('petrol', 'diesel', 'cng', 'electric'),
         allowNull: false,
       },
-      
+
       // Vehicle Photos
       vehiclePhotoFront: {
         type: Sequelize.STRING,
@@ -123,7 +123,7 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true,
       },
-      
+
       // Status & Verification
       isVerified: {
         type: Sequelize.BOOLEAN,
@@ -145,7 +145,7 @@ module.exports = {
         type: Sequelize.BOOLEAN,
         defaultValue: true,
       },
-      
+
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
@@ -157,13 +157,13 @@ module.exports = {
     });
 
     // Add indexes
-    await queryInterface.addIndex('ride_vehicles', ['driverId']);
-    await queryInterface.addIndex('ride_vehicles', ['vehicleNumber']);
-    await queryInterface.addIndex('ride_vehicles', ['vehicleType']);
-    await queryInterface.addIndex('ride_vehicles', ['isAvailable']);
+    await queryInterface.addIndex('RideVehicles', ['driverId']);
+    await queryInterface.addIndex('RideVehicles', ['vehicleNumber']);
+    await queryInterface.addIndex('RideVehicles', ['vehicleType']);
+    await queryInterface.addIndex('RideVehicles', ['isAvailable']);
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('ride_vehicles');
+    await queryInterface.dropTable('RideVehicles');
   }
 };

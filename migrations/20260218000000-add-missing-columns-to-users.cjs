@@ -2,19 +2,32 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('users', 'phone', {
-      type: Sequelize.STRING,
-      allowNull: true,  // true so existing rows don't break
-    });
+    const tableDescription = await queryInterface.describeTable('users');
 
-    await queryInterface.addColumn('users', 'refreshToken', {
-      type: Sequelize.STRING,
-      allowNull: true,
-    });
+    if (!tableDescription.phone) {
+      await queryInterface.addColumn('users', 'phone', {
+        type: Sequelize.STRING,
+        allowNull: true,
+      });
+    }
+
+    if (!tableDescription.refreshToken) {
+      await queryInterface.addColumn('users', 'refreshToken', {
+        type: Sequelize.STRING,
+        allowNull: true,
+      });
+    }
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.removeColumn('users', 'phone');
-    await queryInterface.removeColumn('users', 'refreshToken');
+    const tableDescription = await queryInterface.describeTable('users');
+
+    if (tableDescription.phone) {
+      await queryInterface.removeColumn('users', 'phone');
+    }
+
+    if (tableDescription.refreshToken) {
+      await queryInterface.removeColumn('users', 'refreshToken');
+    }
   }
 };

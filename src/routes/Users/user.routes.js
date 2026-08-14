@@ -1,39 +1,39 @@
-import { Router } from "express";
-import { changeCurrentPassword, getCurrentUser, refreshAccessToken, registerUser, updateUserFirstName, updateUserLastName, verifyEmailOTP, resendEmailOTP } from "../../controllers/Users/users.controllers.js";
-import { loginUser } from "../../controllers/Users/users.controllers.js";
-import { logoutUser } from "../../controllers/Users/users.controllers.js";
+﻿import { Router } from "express";
+import {
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateUserFirstName,
+    updateUserLastName,
+    verifyEmailOTP,
+    resendEmailOTP,
+    sendLoginOTP,
+    verifyLoginOTP
+} from "../../controllers/Users/users.controllers.js";
 import { verifyToken } from "../../middlewares/Auth.middleware.js";
 import { googleSignup } from '../../controllers/GoogleAuth/GoogleAuth.controllers.js';
-import { sendLoginOTP, verifyLoginOTP } from '../../controllers/Users/users.controllers.js';
-
 
 const router = Router();
 
-router.route('/signup').post(registerUser)
+router.post('/signup', registerUser);
+router.post('/google/signup', googleSignup);
 
-router.route('/google/signup').post(googleSignup)
-
+router.post('/login', loginUser);
 router.post('/login/send-otp', sendLoginOTP);
-
 router.post('/login/verify-otp', verifyLoginOTP);
 
-router.route('/login').post(loginUser)
+router.post('/logout', verifyToken, logoutUser);
+router.post('/refresh-token', refreshAccessToken);
 
-router.route('/logout').post(verifyToken, logoutUser)
+router.get('/user', verifyToken, getCurrentUser);
+router.patch('/updatepassword', verifyToken, changeCurrentPassword);
+router.patch('/updatefirstname', verifyToken, updateUserFirstName);
+router.patch('/updatelastname', verifyToken, updateUserLastName);
 
-router.route('/refresh-token').post(refreshAccessToken)
-
-router.route('/user').get(verifyToken, getCurrentUser)
-
-router.route('/updatepassword').patch(verifyToken, changeCurrentPassword)
-
-router.route('/updatefirstname').patch(verifyToken, updateUserFirstName)
-
-router.route('/updatelastname').patch(verifyToken, updateUserLastName)
-
-router.post("/verify-otp", verifyEmailOTP);
-
-router.post("/resend-otp", resendEmailOTP);
-
+router.post('/verify-otp', verifyEmailOTP);
+router.post('/resend-otp', resendEmailOTP);
 
 export default router;
