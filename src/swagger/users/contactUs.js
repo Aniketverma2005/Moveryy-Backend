@@ -7,7 +7,7 @@
 
 /**
  * @swagger
- * /api/v1/users/contactUs:
+ * /api/v1/contact:
  *   post:
  *     summary: Submit a complaint or support request
  *     description: |

@@ -8,7 +8,7 @@ import { generateTokenWithOrg } from "../../utils/GenerateTokenWithOrg.js";
 import jwt from "jsonwebtoken";
 import Organizations from "../../models/Organizations.js";
 import { generateOTP, sendOTPEmail } from "../../utils/OTPService.js";
-import { Op } from "sequelize";
+import { Op } from "sequelize"; 
 
 
 // Generate JWT token

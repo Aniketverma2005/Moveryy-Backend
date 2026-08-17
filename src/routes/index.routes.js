@@ -17,6 +17,7 @@ import contactUsRoutes from "./Users/contactUs.routes.js";
 
 const router = express.Router();
 
+router.use("/users/contactUs", contactUsRoutes);
 router.use("/users", userRoutes);
 router.use("/address", addressRoutes);
 router.use("/organizations", organizationRoutes);
@@ -30,6 +31,5 @@ router.use("/bookingCrew", bookingCrew);
 router.use("/drivers", independentDriverRoutes);
 router.use("/drivers/vehicle", rideVehicleRoutes);
 router.use("/ocr", ocrRoutes);
-router.use("/contact", contactUsRoutes);
 
 export default router;
