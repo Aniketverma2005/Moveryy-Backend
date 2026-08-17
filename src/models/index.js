@@ -1,6 +1,7 @@
 // src/models/index.js
 import sequelize from "../database/db.js";
 import Users from "./Users/Users.js";
+import ContactUs from "./Users/ContactUs.js";
 import Organizations from "./Organizations.js";
 import Employee  from "./Employee/Employee.js";
 import Vehicles from "../models/Vehicles.js"
@@ -72,4 +73,4 @@ const initDB = async () => {
   }
 };
 
-export { sequelize, initDB, Users, Organizations, Employee, Vehicles, VehiclesOffer, BookingCrew};
+export { sequelize, initDB, Users, Organizations, Employee, Vehicles, VehiclesOffer, BookingCrew, ContactUs };
