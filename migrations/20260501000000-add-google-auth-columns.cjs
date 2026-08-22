@@ -2,26 +2,34 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Add googleId column
-    await queryInterface.addColumn('users', 'googleId', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      unique: true
-    });
-    
-    // Add authProvider column
-    await queryInterface.addColumn('users', 'authProvider', {
-      type: Sequelize.ENUM('local', 'google'),
-      defaultValue: 'local',
-      allowNull: false
-    });
-    
-    // Add profilePicture column
-    await queryInterface.addColumn('users', 'profilePicture', {
-      type: Sequelize.STRING,
-      allowNull: true
-    });
-    s
+    const tableDescription = await queryInterface.describeTable('users');
+
+    // Add googleId column if it doesn't exist
+    if (!tableDescription.googleId) {
+      await queryInterface.addColumn('users', 'googleId', {
+        type: Sequelize.STRING,
+        allowNull: true,
+        unique: true
+      });
+    }
+
+    // Add authProvider column if it doesn't exist
+    if (!tableDescription.authProvider) {
+      await queryInterface.addColumn('users', 'authProvider', {
+        type: Sequelize.ENUM('local', 'google'),
+        defaultValue: 'local',
+        allowNull: false
+      });
+    }
+
+    // Add profilePicture column if it doesn't exist
+    if (!tableDescription.profilePicture) {
+      await queryInterface.addColumn('users', 'profilePicture', {
+        type: Sequelize.STRING,
+        allowNull: true
+      });
+    }
+
     // Make password nullable for Google users
     await queryInterface.changeColumn('users', 'password', {
       type: Sequelize.STRING,

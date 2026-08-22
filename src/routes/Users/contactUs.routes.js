@@ -4,6 +4,6 @@ import { submitComplaint } from "../../controllers/Users/contactUs.controllers.j
 
 const router = Router();
 
-router.post('/users/contactUs', verifyToken, submitComplaint);
+router.post('/', verifyToken, submitComplaint);
 
 export default router;
